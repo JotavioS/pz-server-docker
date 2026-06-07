@@ -53,8 +53,8 @@ RUN dpkg --add-architecture armhf && \
     dpkg-deb -x libstdc++6*_amd64.deb . && \
     dpkg-deb -x libgcc-s1*_amd64.deb . && \
     mkdir -p /usr/lib/x86_64-linux-gnu && \
-    cp -d usr/lib/x86_64-linux-gnu/libstdc++.so.6* /usr/lib/x86_64-linux-gnu/ && \
-    cp -d usr/lib/x86_64-linux-gnu/libgcc_s.so.1* /usr/lib/x86_64-linux-gnu/ && \
+    find . -name "libstdc++.so.6*" -exec cp -d {} /usr/lib/x86_64-linux-gnu/ \; && \
+    find . -name "libgcc_s.so.1*" -exec cp -d {} /usr/lib/x86_64-linux-gnu/ \; && \
     rm -rf /tmp/x86_64-libs /var/lib/apt/lists/*
 
 # Generate locales
