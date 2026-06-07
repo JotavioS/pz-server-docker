@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Fix permissions on mounted volumes before running SteamCMD or starting the server
+echo "Fixing permissions on mounted volumes..."
+chown -R steam:steam /home/steam/pz-dedicated /home/steam/Zomboid /home/steam/pz-dedicated/steamapps/workshop || true
+chmod 755 /home/steam/pz-dedicated /home/steam/Zomboid || true
+
 cd ${STEAMAPPDIR}
 
 # Ensure Java box64 wrapper is in place (self-healing)
@@ -246,12 +251,5 @@ fi
 # Fix to a bug in start-server.sh that causes to no preload a library:
 # ERROR: ld.so: object 'libjsig.so' from LD_PRELOAD cannot be preloaded (cannot open shared object file): ignored.
 export LD_LIBRARY_PATH="${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}"
-
-## Fix the permissions in the data and workshop folders
-chown -R 1000:1000 /home/steam/pz-dedicated/steamapps/workshop /home/steam/Zomboid
-# When binding a host folder with Docker to the container, the resulting folder has these permissions "d---" (i.e. NO `rwx`) 
-# which will cause runtime issues after launching the server.
-# Fix it the adding back `rwx` permissions for the file owner (steam user)
-chmod 755 /home/steam/Zomboid
 
 su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && cd ${STEAMAPPDIR} && pwd && ./start-server.sh ${ARGS}"
