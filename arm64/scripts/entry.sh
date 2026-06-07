@@ -19,7 +19,7 @@ if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
   chmod +x "${STEAMAPPDIR}/jre64/bin/java"
@@ -88,7 +88,7 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
     chmod +x "${STEAMAPPDIR}/jre64/bin/java"
