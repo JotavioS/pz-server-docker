@@ -16,6 +16,7 @@ if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
   echo "Writing/updating Java box64 wrapper..."
   cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
+export BOX64_LOG=1
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
@@ -85,6 +86,7 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [
     echo "Writing/updating Java box64 wrapper after installation..."
     cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
+export BOX64_LOG=1
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
