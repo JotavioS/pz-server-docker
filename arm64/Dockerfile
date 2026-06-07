@@ -87,7 +87,7 @@ RUN mkdir -p "${STEAMCMDDIR}/linux32" && \
     echo -e '#!/bin/bash\nexec /usr/local/bin/box86 /home/steam/steamcmd/linux32/steamcmd.real "$@"' > "${STEAMCMDDIR}/linux32/steamcmd" && \
     chmod +x "${STEAMCMDDIR}/linux32/steamcmd"
 
-# Run steamcmd to update itself
+# Run steamcmd to update itself during build
 RUN /home/steam/steamcmd/steamcmd.sh +quit || true
 
 # Restore SteamCMD wrapper if overwritten by update
@@ -97,39 +97,19 @@ RUN if [ -f "${STEAMCMDDIR}/linux32/steamcmd" ] && [ ! -f "${STEAMCMDDIR}/linux3
         chmod +x "${STEAMCMDDIR}/linux32/steamcmd"; \
     fi
 
-RUN chown -R steam:steam "${HOMEDIR}"
-
-# Install Project Zomboid dedicated server as steam user
-ARG STEAMAPPBRANCH="public"
-ENV STEAMAPPBRANCH=$STEAMAPPBRANCH
-
-RUN set -x && \
+# Create required folders to keep their permissions on mount
+RUN mkdir -p "${HOMEDIR}/Zomboid" && \
     mkdir -p "${STEAMAPPDIR}" && \
-    chown -R steam:steam "${STEAMAPPDIR}" && \
-    if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then \
-        su steam -c "/usr/local/bin/box86 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"; \
-    else \
-        su steam -c "/usr/local/bin/box86 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"; \
-    fi
+    chown -R steam:steam "${HOMEDIR}" "${STEAMAPPDIR}"
 
 # Copy entry scripts
 COPY --chown=steam:steam scripts/entry.sh /server/scripts/entry.sh
 COPY --chown=steam:steam scripts/search_folder.sh /server/scripts/search_folder.sh
 RUN chmod 550 /server/scripts/entry.sh /server/scripts/search_folder.sh
 
-# Setup Java wrapper for Box64 before runtime
-RUN if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then \
-        mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real" && \
-        echo -e '#!/bin/bash\nexport BOX64_JVM=1\nexport BOX64_DYNAREC_BIGBLOCK=0\nexport BOX64_DYNAREC_STRONGMEM=1\nexport LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:${LD_LIBRARY_PATH}"\nexec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"' > "${STEAMAPPDIR}/jre64/bin/java" && \
-        chmod +x "${STEAMAPPDIR}/jre64/bin/java" && \
-        chown steam:steam "${STEAMAPPDIR}/jre64/bin/java"; \
-    fi
-
-# Create Zomboid data folder
-RUN mkdir -p "${HOMEDIR}/Zomboid" && chown -R steam:steam "${HOMEDIR}/Zomboid"
-
 WORKDIR ${HOMEDIR}
 
+# Expose ports
 EXPOSE 16261-16262/udp \
        8766-8767/udp \
        16262-16272/tcp \

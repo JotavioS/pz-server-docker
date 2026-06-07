@@ -11,3 +11,5 @@
 !**/data/.gitkeep
 **/workshop-mods/*
 !**/workshop-mods/.gitkeep
+**/server-files/*
+!**/server-files/.gitkeep

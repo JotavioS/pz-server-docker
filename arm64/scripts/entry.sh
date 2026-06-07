@@ -27,25 +27,18 @@ EOF
   chown steam:steam "${STEAMAPPDIR}/jre64/bin/java"
 fi
 
-#####################################
-#                                   #
-# Force an update if the env is set #
-#                                   #
-#####################################
-
-if [ "${FORCESTEAMCLIENTSOUPDATE}" == "1" ] || [ "${FORCESTEAMCLIENTSOUPDATE,,}" == "true" ]; then
-  echo "FORCESTEAMCLIENTSOUPDATE variable is set, updating steamclient.so in Zomboid's server"
-  cp "${STEAMCMDDIR}/linux64/steamclient.so" "${STEAMAPPDIR}/linux64/steamclient.so"
-  cp "${STEAMCMDDIR}/linux32/steamclient.so" "${STEAMAPPDIR}/steamclient.so"
-fi
-
-if [ "${FORCEUPDATE}" == "1" ] || [ "${FORCEUPDATE,,}" == "true" ]; then
-  echo "FORCEUPDATE variable is set, so the server will be updated right now"
-  bash "${STEAMCMDDIR}/steamcmd.sh" +force_install_dir "${STEAMAPPDIR}" +login anonymous +app_update "${STEAMAPPID}" -beta "${STEAMAPPBRANCH}" validate +quit
+# If the server files do not exist, or if FORCEUPDATE is set, install/update the game
+if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [ "${FORCEUPDATE,,}" == "true" ]; then
+  echo "Installing or updating Project Zomboid Dedicated Server..."
+  if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
+    su steam -c "/usr/local/bin/box86 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"
+  else
+    su steam -c "/usr/local/bin/box86 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"
+  fi
   
-  # Check and restore Java wrapper if it got overwritten by update
+  # Check and restore Java wrapper if it got overwritten or is missing after update/install
   if [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" != "#!" ]; then
-    echo "Restoring Java box64 wrapper after update..."
+    echo "Restoring Java box64 wrapper after installation..."
     mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real"
     cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
@@ -58,6 +51,12 @@ EOF
     chmod +x "${STEAMAPPDIR}/jre64/bin/java"
     chown steam:steam "${STEAMAPPDIR}/jre64/bin/java"
   fi
+fi
+
+if [ "${FORCESTEAMCLIENTSOUPDATE}" == "1" ] || [ "${FORCESTEAMCLIENTSOUPDATE,,}" == "true" ]; then
+  echo "FORCESTEAMCLIENTSOUPDATE variable is set, updating steamclient.so in Zomboid's server"
+  cp "${STEAMCMDDIR}/linux64/steamclient.so" "${STEAMAPPDIR}/linux64/steamclient.so"
+  cp "${STEAMCMDDIR}/linux32/steamclient.so" "${STEAMAPPDIR}/steamclient.so"
 fi
 
 

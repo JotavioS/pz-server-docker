@@ -42,28 +42,15 @@ RUN mkdir -p "${STEAMCMDDIR}" && \
 # Run steamcmd to update itself during build
 RUN /home/steam/steamcmd/steamcmd.sh +quit || true
 
-RUN chown -R steam:steam "${HOMEDIR}"
-
-# Install Project Zomboid dedicated server as steam user
-ARG STEAMAPPBRANCH="public"
-ENV STEAMAPPBRANCH=$STEAMAPPBRANCH
-
-RUN set -x && \
+# Create required folders to keep their permissions on mount
+RUN mkdir -p "${HOMEDIR}/Zomboid" && \
     mkdir -p "${STEAMAPPDIR}" && \
-    chown -R steam:steam "${STEAMAPPDIR}" && \
-    if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then \
-        su steam -c "${STEAMCMDDIR}/steamcmd.sh +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"; \
-    else \
-        su steam -c "${STEAMCMDDIR}/steamcmd.sh +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"; \
-    fi
+    chown -R steam:steam "${HOMEDIR}" "${STEAMAPPDIR}"
 
 # Copy entry scripts
 COPY --chown=steam:steam scripts/entry.sh /server/scripts/entry.sh
 COPY --chown=steam:steam scripts/search_folder.sh /server/scripts/search_folder.sh
 RUN chmod 550 /server/scripts/entry.sh /server/scripts/search_folder.sh
-
-# Create required folders to keep their permissions on mount
-RUN mkdir -p "${HOMEDIR}/Zomboid" && chown -R steam:steam "${HOMEDIR}/Zomboid"
 
 WORKDIR ${HOMEDIR}
 
