@@ -1,0 +1,13 @@
+# Reference source folders
+/source-arm/
+/source-x86/
+
+# Environment files
+**/.env
+!**/.env.template
+
+# Runtime volume mounts
+**/data/*
+!**/data/.gitkeep
+**/workshop-mods/*
+!**/workshop-mods/.gitkeep
