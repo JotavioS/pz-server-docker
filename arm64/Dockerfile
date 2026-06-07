@@ -55,10 +55,12 @@ ENV STEAMAPPDIR="${HOMEDIR}/${STEAMAPP}-dedicated"
 ENV STEAMCMDDIR="${HOMEDIR}/steamcmd"
 ENV HOME="${HOMEDIR}"
 
-# Set the environment variables for Box64 and JVM
+# Set the environment variables for Box64, JVM and SteamCMD thread safety
 ENV BOX64_JVM=1
 ENV BOX64_DYNAREC_BIGBLOCK=0
 ENV BOX64_DYNAREC_STRONGMEM=1
+ENV LD_PRELOAD="libpthread.so.0"
+ENV BOX64_LD_PRELOAD="libpthread.so.0"
 
 # Create steam user
 RUN useradd -m -s /bin/bash steam
@@ -71,6 +73,9 @@ RUN mkdir -p "${STEAMCMDDIR}" && \
 
 # Set the DEBUGGER env variable to use Box64 for executing SteamCMD
 ENV DEBUGGER="/usr/local/bin/box64"
+
+# Optimize box64 dynarec for steamcmd (thread safety and stability)
+RUN printf '[steamcmd]\nBOX64_DYNAREC_BIGBLOCK=3\nBOX64_DYNAREC_CALLRET=2\nBOX64_DYNAREC_STRONGMEM=1\n\n' >> /etc/box64.box64rc
 
 # Run steamcmd to update itself during build
 RUN /home/steam/steamcmd/steamcmd.sh +quit || true
