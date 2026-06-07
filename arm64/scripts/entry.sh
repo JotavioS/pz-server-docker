@@ -16,7 +16,7 @@ if [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && [ "$(head -c 2 "${STEAMAPPDIR}/jre6
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
   chmod +x "${STEAMAPPDIR}/jre64/bin/java"
@@ -32,7 +32,7 @@ if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/Pr
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/ProjectZomboid64.real "$@"
 EOF
   chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
@@ -57,7 +57,7 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
     chmod +x "${STEAMAPPDIR}/jre64/bin/java"
@@ -73,7 +73,7 @@ EOF
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/ProjectZomboid64.real "$@"
 EOF
     chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
