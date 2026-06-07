@@ -106,7 +106,11 @@ ENV STEAMAPPBRANCH=$STEAMAPPBRANCH
 RUN set -x && \
     mkdir -p "${STEAMAPPDIR}" && \
     chown -R steam:steam "${STEAMAPPDIR}" && \
-    su steam -c "/usr/local/bin/box86 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"
+    if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then \
+        su steam -c "/usr/local/bin/box86 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"; \
+    else \
+        su steam -c "/usr/local/bin/box86 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"; \
+    fi
 
 # Copy entry scripts
 COPY --chown=steam:steam scripts/entry.sh /server/scripts/entry.sh
