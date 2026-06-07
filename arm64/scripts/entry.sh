@@ -23,6 +23,22 @@ EOF
   chown steam:steam "${STEAMAPPDIR}/jre64/bin/java"
 fi
 
+# Ensure ProjectZomboid64 box64 wrapper is in place (self-healing)
+if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
+  echo "Restoring ProjectZomboid64 box64 wrapper..."
+  mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
+  cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
+#!/bin/bash
+export BOX64_JVM=1
+export BOX64_DYNAREC_BIGBLOCK=0
+export BOX64_DYNAREC_STRONGMEM=1
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:${LD_LIBRARY_PATH}"
+exec /usr/local/bin/box64 /home/steam/pz-dedicated/ProjectZomboid64.real "$@"
+EOF
+  chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
+  chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
+fi
+
 # If the server files do not exist, or if FORCEUPDATE is set, install/update the game
 if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [ "${FORCEUPDATE,,}" == "true" ]; then
   echo "Installing or updating Project Zomboid Dedicated Server..."
@@ -46,6 +62,22 @@ exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
     chmod +x "${STEAMAPPDIR}/jre64/bin/java"
     chown steam:steam "${STEAMAPPDIR}/jre64/bin/java"
+  fi
+
+  # Check and restore ProjectZomboid64 wrapper if it got overwritten or is missing after update/install
+  if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
+    echo "Restoring ProjectZomboid64 box64 wrapper after installation..."
+    mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
+    cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
+#!/bin/bash
+export BOX64_JVM=1
+export BOX64_DYNAREC_BIGBLOCK=0
+export BOX64_DYNAREC_STRONGMEM=1
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:${LD_LIBRARY_PATH}"
+exec /usr/local/bin/box64 /home/steam/pz-dedicated/ProjectZomboid64.real "$@"
+EOF
+    chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
+    chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
   fi
 fi
 
