@@ -2,15 +2,6 @@
 
 cd ${STEAMAPPDIR}
 
-# Ensure SteamCMD box64/box32 wrapper is in place (self-healing)
-if [ -f "/home/steam/steamcmd/linux32/steamcmd" ] && [ "$(head -c 2 /home/steam/steamcmd/linux32/steamcmd)" != "#!" ]; then
-  echo "Restoring SteamCMD box64 wrapper..."
-  mv /home/steam/steamcmd/linux32/steamcmd /home/steam/steamcmd/linux32/steamcmd.real
-  echo -e '#!/bin/bash\nexec /usr/local/bin/box64 /home/steam/steamcmd/linux32/steamcmd.real "$@"' > /home/steam/steamcmd/linux32/steamcmd
-  chmod +x /home/steam/steamcmd/linux32/steamcmd
-  chown steam:steam /home/steam/steamcmd/linux32/steamcmd
-fi
-
 # Ensure Java box64 wrapper is in place (self-healing)
 if [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" != "#!" ]; then
   echo "Restoring Java box64 wrapper..."
@@ -31,9 +22,9 @@ fi
 if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [ "${FORCEUPDATE,,}" == "true" ]; then
   echo "Installing or updating Project Zomboid Dedicated Server..."
   if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
-    su steam -c "/usr/local/bin/box64 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"
+    su steam -c "export DEBUGGER=/usr/local/bin/box64 && ${STEAMCMDDIR}/steamcmd.sh +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"
   else
-    su steam -c "/usr/local/bin/box64 ${STEAMCMDDIR}/linux32/steamcmd.real +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"
+    su steam -c "export DEBUGGER=/usr/local/bin/box64 && ${STEAMCMDDIR}/steamcmd.sh +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"
   fi
   
   # Check and restore Java wrapper if it got overwritten or is missing after update/install

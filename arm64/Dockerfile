@@ -69,22 +69,11 @@ WORKDIR ${HOMEDIR}
 RUN mkdir -p "${STEAMCMDDIR}" && \
     curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar -C "${STEAMCMDDIR}" -zxvf -
 
-# Create wrapper for SteamCMD before we run it during build (using box64/box32 instead of box86)
-RUN mkdir -p "${STEAMCMDDIR}/linux32" && \
-    touch "${STEAMCMDDIR}/linux32/steamcmd" && \
-    mv "${STEAMCMDDIR}/linux32/steamcmd" "${STEAMCMDDIR}/linux32/steamcmd.real" || true && \
-    echo -e '#!/bin/bash\nexec /usr/local/bin/box64 /home/steam/steamcmd/linux32/steamcmd.real "$@"' > "${STEAMCMDDIR}/linux32/steamcmd" && \
-    chmod +x "${STEAMCMDDIR}/linux32/steamcmd"
+# Set the DEBUGGER env variable to use Box64 for executing SteamCMD
+ENV DEBUGGER="/usr/local/bin/box64"
 
 # Run steamcmd to update itself during build
 RUN /home/steam/steamcmd/steamcmd.sh +quit || true
-
-# Restore SteamCMD wrapper if overwritten by update (using box64/box32 instead of box86)
-RUN if [ -f "${STEAMCMDDIR}/linux32/steamcmd" ] && [ ! -f "${STEAMCMDDIR}/linux32/steamcmd.real" ]; then \
-        mv "${STEAMCMDDIR}/linux32/steamcmd" "${STEAMCMDDIR}/linux32/steamcmd.real" && \
-        echo -e '#!/bin/bash\nexec /usr/local/bin/box64 /home/steam/steamcmd/linux32/steamcmd.real "$@"' > "${STEAMCMDDIR}/linux32/steamcmd" && \
-        chmod +x "${STEAMCMDDIR}/linux32/steamcmd"; \
-    fi
 
 # Create required folders to keep their permissions on mount
 RUN mkdir -p "${HOMEDIR}/Zomboid" && \
