@@ -8,9 +8,12 @@ chmod 755 /home/steam/pz-dedicated /home/steam/Zomboid || true
 cd ${STEAMAPPDIR}
 
 # Ensure Java box64 wrapper is in place (self-healing)
-if [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" != "#!" ]; then
-  echo "Restoring Java box64 wrapper..."
-  mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real"
+if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
+  if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" != "#!" ]; then
+    echo "Backing up raw Java binary..."
+    mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real"
+  fi
+  echo "Writing/updating Java box64 wrapper..."
   cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
 export BOX64_JVM=1
@@ -24,9 +27,12 @@ EOF
 fi
 
 # Ensure ProjectZomboid64 box64 wrapper is in place (self-healing)
-if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
-  echo "Restoring ProjectZomboid64 box64 wrapper..."
-  mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
+if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ]; then
+  if [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
+    echo "Backing up raw ProjectZomboid64 binary..."
+    mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
+  fi
+  echo "Writing/updating ProjectZomboid64 box64 wrapper..."
   cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
@@ -71,9 +77,12 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [
   fi
   
   # Check and restore Java wrapper if it got overwritten or is missing after update/install
-  if [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" != "#!" ]; then
-    echo "Restoring Java box64 wrapper after installation..."
-    mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real"
+  if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
+    if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" != "#!" ]; then
+      echo "Backing up raw Java binary after installation..."
+      mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real"
+    fi
+    echo "Writing/updating Java box64 wrapper after installation..."
     cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
 export BOX64_JVM=1
@@ -87,9 +96,12 @@ EOF
   fi
 
   # Check and restore ProjectZomboid64 wrapper if it got overwritten or is missing after update/install
-  if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
-    echo "Restoring ProjectZomboid64 box64 wrapper after installation..."
-    mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
+  if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ]; then
+    if [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
+      echo "Backing up raw ProjectZomboid64 binary after installation..."
+      mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
+    fi
+    echo "Writing/updating ProjectZomboid64 box64 wrapper after installation..."
     cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
