@@ -31,6 +31,10 @@ COPY --from=builder /tmp/install/usr/local/bin/box64 /usr/local/bin/box64
 
 # Configure multiarch and install dependencies (including 32-bit ARM libraries for Box32)
 RUN dpkg --add-architecture armhf && \
+    dpkg --add-architecture amd64 && \
+    echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse" >> /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -41,8 +45,16 @@ RUN dpkg --add-architecture armhf && \
     libc6:armhf \
     libncurses5:armhf \
     libstdc++6:armhf \
-    jq \
-    && rm -rf /var/lib/apt/lists/*
+    jq && \
+    mkdir -p /tmp/x86_64-libs && \
+    cd /tmp/x86_64-libs && \
+    apt-get download libstdc++6:amd64 libgcc-s1:amd64 && \
+    dpkg-deb -x libstdc++6*_amd64.deb . && \
+    dpkg-deb -x libgcc-s1*_amd64.deb . && \
+    mkdir -p /usr/lib/x86_64-linux-gnu && \
+    cp -d usr/lib/x86_64-linux-gnu/libstdc++.so.6* /usr/lib/x86_64-linux-gnu/ && \
+    cp -d usr/lib/x86_64-linux-gnu/libgcc_s.so.1* /usr/lib/x86_64-linux-gnu/ && \
+    rm -rf /tmp/x86_64-libs /var/lib/apt/lists/*
 
 # Generate locales
 RUN sed -i 's/^# *\(es_ES.UTF-8\)/\1/' /etc/locale.gen && \
