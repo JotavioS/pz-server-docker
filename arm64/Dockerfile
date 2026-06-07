@@ -32,6 +32,7 @@ COPY --from=builder /tmp/install/usr/local/bin/box64 /usr/local/bin/box64
 # Configure multiarch and install dependencies (including 32-bit ARM libraries for Box32)
 RUN dpkg --add-architecture armhf && \
     dpkg --add-architecture amd64 && \
+    sed -i 's/^deb /deb [arch=arm64,armhf] /' /etc/apt/sources.list && \
     echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse" >> /etc/apt/sources.list && \
     echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
     echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse" >> /etc/apt/sources.list && \
