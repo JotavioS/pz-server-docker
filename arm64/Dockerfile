@@ -41,6 +41,7 @@ RUN dpkg --add-architecture armhf && \
     libc6:armhf \
     libncurses5:armhf \
     libstdc++6:armhf \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Generate locales

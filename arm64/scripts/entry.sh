@@ -16,7 +16,7 @@ if [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && [ "$(head -c 2 "${STEAMAPPDIR}/jre6
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
   chmod +x "${STEAMAPPDIR}/jre64/bin/java"
@@ -29,11 +29,33 @@ if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/Pr
   mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
   cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
-export BOX64_JVM=1
-export BOX64_DYNAREC_BIGBLOCK=0
-export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
-exec /usr/local/bin/box64 /home/steam/pz-dedicated/ProjectZomboid64.real "$@"
+JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
+if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
+  CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
+  MAINCLASS=$(jq -r '.mainClass' "${JSON_FILE}" | tr '/' '.')
+  readarray -t VM_ARGS < <(jq -r '.vmArgs[]' "${JSON_FILE}")
+else
+  CLASSPATH="java/:java/projectzomboid.jar"
+  MAINCLASS="zombie.network.GameServer"
+  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/")
+fi
+
+JVM_ARGS=()
+APP_ARGS=()
+in_app_args=false
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    in_app_args=true
+    continue
+  fi
+  if [ "$in_app_args" = true ]; then
+    APP_ARGS+=("$arg")
+  else
+    JVM_ARGS+=("$arg")
+  fi
+done
+
+exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
   chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
   chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
@@ -57,7 +79,7 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
     chmod +x "${STEAMAPPDIR}/jre64/bin/java"
@@ -70,11 +92,33 @@ EOF
     mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
     cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
-export BOX64_JVM=1
-export BOX64_DYNAREC_BIGBLOCK=0
-export BOX64_DYNAREC_STRONGMEM=1
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:${LD_LIBRARY_PATH}"
-exec /usr/local/bin/box64 /home/steam/pz-dedicated/ProjectZomboid64.real "$@"
+JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
+if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
+  CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
+  MAINCLASS=$(jq -r '.mainClass' "${JSON_FILE}" | tr '/' '.')
+  readarray -t VM_ARGS < <(jq -r '.vmArgs[]' "${JSON_FILE}")
+else
+  CLASSPATH="java/:java/projectzomboid.jar"
+  MAINCLASS="zombie.network.GameServer"
+  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/")
+fi
+
+JVM_ARGS=()
+APP_ARGS=()
+in_app_args=false
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    in_app_args=true
+    continue
+  fi
+  if [ "$in_app_args" = true ]; then
+    APP_ARGS+=("$arg")
+  else
+    JVM_ARGS+=("$arg")
+  fi
+done
+
+exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
     chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
     chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
