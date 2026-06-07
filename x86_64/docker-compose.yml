@@ -1,4 +1,3 @@
-version: "3.7"
 services:
   ProjectZomboidDedicatedServer:
     image: zomboid-server-x86_64:latest

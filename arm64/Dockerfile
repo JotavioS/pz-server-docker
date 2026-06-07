@@ -1,5 +1,5 @@
 ###########################################################
-# Stage 1: Build Box86 and Box64
+# Stage 1: Build Box64 with Box32 support
 ###########################################################
 FROM ubuntu:22.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
@@ -10,23 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     ca-certificates \
     python3 \
-    gcc-arm-linux-gnueabihf \
-    libc6-dev-armhf-cross \
     && rm -rf /var/lib/apt/lists/*
 
-# Compile box86 (32-bit emulator)
-# Use RPI4ARM64 target which automatically sets up gcc-arm-linux-gnueabihf cross-compilation for ARM64 hosts
-RUN git clone --depth 1 https://github.com/ptitSeb/box86.git /box86 && \
-    mkdir -p /box86/build && cd /box86/build && \
-    cmake .. -DRPI4ARM64=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
-    make -j$(nproc) && \
-    make install DESTDIR=/tmp/install
-
-# Compile box64 (64-bit emulator)
-# Use RPI4ARM64 target optimized for ARMv8 cores
+# Compile box64 (64-bit emulator with experimental Box32 support)
+# Use RPI4ARM64 target optimized for ARMv8 cores, enabling BOX32 and BOX32_BINFMT
 RUN git clone --depth 1 https://github.com/ptitSeb/box64.git /box64 && \
     mkdir -p /box64/build && cd /box64/build && \
-    cmake .. -DRPI4ARM64=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
+    cmake .. -DRPI4ARM64=1 -DBOX32=ON -DBOX32_BINFMT=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
     make -j$(nproc) && \
     make install DESTDIR=/tmp/install
 
@@ -36,11 +26,10 @@ RUN git clone --depth 1 https://github.com/ptitSeb/box64.git /box64 && \
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Copy compiled emulators
-COPY --from=builder /tmp/install/usr/local/bin/box86 /usr/local/bin/box86
+# Copy compiled emulator (Box64 with Box32 support)
 COPY --from=builder /tmp/install/usr/local/bin/box64 /usr/local/bin/box64
 
-# Configure multiarch and install dependencies (including 32-bit libraries for box86)
+# Configure multiarch and install dependencies (including 32-bit ARM libraries for Box32)
 RUN dpkg --add-architecture armhf && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -80,20 +69,20 @@ WORKDIR ${HOMEDIR}
 RUN mkdir -p "${STEAMCMDDIR}" && \
     curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar -C "${STEAMCMDDIR}" -zxvf -
 
-# Create wrapper for SteamCMD before we run it during build
+# Create wrapper for SteamCMD before we run it during build (using box64/box32 instead of box86)
 RUN mkdir -p "${STEAMCMDDIR}/linux32" && \
     touch "${STEAMCMDDIR}/linux32/steamcmd" && \
     mv "${STEAMCMDDIR}/linux32/steamcmd" "${STEAMCMDDIR}/linux32/steamcmd.real" || true && \
-    echo -e '#!/bin/bash\nexec /usr/local/bin/box86 /home/steam/steamcmd/linux32/steamcmd.real "$@"' > "${STEAMCMDDIR}/linux32/steamcmd" && \
+    echo -e '#!/bin/bash\nexec /usr/local/bin/box64 /home/steam/steamcmd/linux32/steamcmd.real "$@"' > "${STEAMCMDDIR}/linux32/steamcmd" && \
     chmod +x "${STEAMCMDDIR}/linux32/steamcmd"
 
 # Run steamcmd to update itself during build
 RUN /home/steam/steamcmd/steamcmd.sh +quit || true
 
-# Restore SteamCMD wrapper if overwritten by update
+# Restore SteamCMD wrapper if overwritten by update (using box64/box32 instead of box86)
 RUN if [ -f "${STEAMCMDDIR}/linux32/steamcmd" ] && [ ! -f "${STEAMCMDDIR}/linux32/steamcmd.real" ]; then \
         mv "${STEAMCMDDIR}/linux32/steamcmd" "${STEAMCMDDIR}/linux32/steamcmd.real" && \
-        echo -e '#!/bin/bash\nexec /usr/local/bin/box86 /home/steam/steamcmd/linux32/steamcmd.real "$@"' > "${STEAMCMDDIR}/linux32/steamcmd" && \
+        echo -e '#!/bin/bash\nexec /usr/local/bin/box64 /home/steam/steamcmd/linux32/steamcmd.real "$@"' > "${STEAMCMDDIR}/linux32/steamcmd" && \
         chmod +x "${STEAMCMDDIR}/linux32/steamcmd"; \
     fi
 
