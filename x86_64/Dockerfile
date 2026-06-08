@@ -50,7 +50,9 @@ RUN mkdir -p "${HOMEDIR}/Zomboid" && \
 # Copy entry scripts
 COPY --chown=steam:steam scripts/entry.sh /server/scripts/entry.sh
 COPY --chown=steam:steam scripts/search_folder.sh /server/scripts/search_folder.sh
-RUN chmod 550 /server/scripts/entry.sh /server/scripts/search_folder.sh
+COPY --chown=steam:steam scripts/pz-manage.sh /server/scripts/pz-manage.sh
+RUN chmod 550 /server/scripts/entry.sh /server/scripts/search_folder.sh /server/scripts/pz-manage.sh && \
+    ln -sf /server/scripts/pz-manage.sh /usr/local/bin/pz-manage
 
 WORKDIR ${HOMEDIR}
 

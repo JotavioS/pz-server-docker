@@ -5,6 +5,104 @@ echo "Fixing permissions on mounted volumes..."
 chown -R steam:steam /home/steam/pz-dedicated /home/steam/Zomboid /home/steam/pz-dedicated/steamapps/workshop || true
 chmod 755 /home/steam/pz-dedicated /home/steam/Zomboid || true
 
+# Check for pending administration actions
+PENDING_ACTION_FILE="/home/steam/Zomboid/.pending_action"
+if [ -f "$PENDING_ACTION_FILE" ]; then
+  ACTION=$(cat "$PENDING_ACTION_FILE")
+  echo "Found pending admin action: $ACTION"
+  
+  # Ensure SERVERNAME is set (default to servertest if empty)
+  S_NAME="${SERVERNAME:-servertest}"
+  
+  case "$ACTION" in
+    WIPE_WORLD)
+      echo "Performing WIPE of the world map..."
+      # Create a backup first for safety
+      BACKUP_FILE="/home/steam/Zomboid/Backups/auto_backup_before_wipe_$(date +%Y%m%d_%H%M%S).tar.gz"
+      mkdir -p "/home/steam/Zomboid/Backups"
+      tar --exclude="Zomboid/Backups" -czf "$BACKUP_FILE" -C "/home/steam" Zomboid
+      echo "Backup created at $BACKUP_FILE"
+      
+      # Delete map saves folder
+      rm -rf "/home/steam/Zomboid/Saves/Multiplayer/${S_NAME}"
+      echo "World map wiped."
+      ;;
+    WIPE_PLAYERS)
+      echo "Performing WIPE of player accounts/characters..."
+      # Create a backup first for safety
+      BACKUP_FILE="/home/steam/Zomboid/Backups/auto_backup_before_wipe_$(date +%Y%m%d_%H%M%S).tar.gz"
+      mkdir -p "/home/steam/Zomboid/Backups"
+      tar --exclude="Zomboid/Backups" -czf "$BACKUP_FILE" -C "/home/steam" Zomboid
+      echo "Backup created at $BACKUP_FILE"
+      
+      # Delete player database files
+      rm -f "/home/steam/Zomboid/db/${S_NAME}.db"*
+      rm -f "/home/steam/Zomboid/Saves/Multiplayer/${S_NAME}/players.db"
+      echo "Player databases wiped."
+      ;;
+    WIPE_ALL)
+      echo "Performing WIPE of world map and player accounts..."
+      # Create a backup first for safety
+      BACKUP_FILE="/home/steam/Zomboid/Backups/auto_backup_before_wipe_$(date +%Y%m%d_%H%M%S).tar.gz"
+      mkdir -p "/home/steam/Zomboid/Backups"
+      tar --exclude="Zomboid/Backups" -czf "$BACKUP_FILE" -C "/home/steam" Zomboid
+      echo "Backup created at $BACKUP_FILE"
+      
+      # Delete map saves and player database
+      rm -rf "/home/steam/Zomboid/Saves/Multiplayer/${S_NAME}"
+      rm -f "/home/steam/Zomboid/db/${S_NAME}.db"*
+      echo "World map and player databases wiped."
+      ;;
+    WIPE_COMPLETE)
+      echo "Performing COMPLETE WIPE (resetting all configs, saves, and databases)..."
+      # Create a backup first for safety
+      BACKUP_FILE="/home/steam/Zomboid/Backups/auto_backup_before_wipe_$(date +%Y%m%d_%H%M%S).tar.gz"
+      mkdir -p "/home/steam/Zomboid/Backups"
+      tar --exclude="Zomboid/Backups" -czf "$BACKUP_FILE" -C "/home/steam" Zomboid
+      echo "Backup created at $BACKUP_FILE"
+      
+      # Delete everything under Zomboid except the Backups folder
+      find "/home/steam/Zomboid" -mindepth 1 -maxdepth 1 ! -name 'Backups' ! -name '.pending_action' -exec rm -rf {} +
+      echo "Complete server data wiped."
+      ;;
+    ROLLBACK:*)
+      BACKUP_NAME="${ACTION#ROLLBACK:}"
+      BACKUP_PATH="/home/steam/Zomboid/Backups/${BACKUP_NAME}"
+      if [ -f "$BACKUP_PATH" ]; then
+        echo "Performing ROLLBACK to $BACKUP_NAME..."
+        
+        # Create a pre-rollback backup just in case
+        PRE_ROLLBACK="/home/steam/Zomboid/Backups/pre_rollback_$(date +%Y%m%d_%H%M%S).tar.gz"
+        mkdir -p "/home/steam/Zomboid/Backups"
+        tar --exclude="Zomboid/Backups" -czf "$PRE_ROLLBACK" -C "/home/steam" Zomboid
+        
+        # Extract the selected backup
+        # Clean current files first, keeping Backups folder
+        find "/home/steam/Zomboid" -mindepth 1 -maxdepth 1 ! -name 'Backups' ! -name '.pending_action' -exec rm -rf {} +
+        
+        # Extract the backup
+        tar -xzf "$BACKUP_PATH" -C "/home/steam"
+        echo "Rollback completed successfully."
+      else
+        echo "ERROR: Backup file not found at $BACKUP_PATH"
+      fi
+      ;;
+    BACKUP_COLD)
+      echo "Performing COLD BACKUP..."
+      BACKUP_FILE="/home/steam/Zomboid/Backups/backup_$(date +%Y%m%d_%H%M%S).tar.gz"
+      mkdir -p "/home/steam/Zomboid/Backups"
+      tar --exclude="Zomboid/Backups" -czf "$BACKUP_FILE" -C "/home/steam" Zomboid
+      echo "Cold backup created at $BACKUP_FILE"
+      ;;
+    *)
+      echo "Unknown pending action: $ACTION"
+      ;;
+  esac
+  
+  # Delete the pending action file
+  rm -f "$PENDING_ACTION_FILE"
+fi
+
 cd ${STEAMAPPDIR}
 
 # Ensure Java box64 wrapper is in place (self-healing)
@@ -340,4 +438,15 @@ fi
 # ERROR: ld.so: object 'libjsig.so' from LD_PRELOAD cannot be preloaded (cannot open shared object file): ignored.
 export LD_LIBRARY_PATH="${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}"
 
-su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && cd ${STEAMAPPDIR} && pwd && ./start-server.sh ${ARGS}"
+# Create FIFO for server stdin if it doesn't exist
+FIFO_PATH="/home/steam/pz.fifo"
+if [ ! -p "$FIFO_PATH" ]; then
+  echo "Creating stdin pipe (FIFO) at $FIFO_PATH..."
+  mkfifo "$FIFO_PATH"
+  chown steam:steam "$FIFO_PATH"
+  chmod 660 "$FIFO_PATH"
+fi
+
+# Run the server with stdin redirected from the FIFO
+# We keep the write descriptor open using tail -f to prevent EOF when commands finish writing
+su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && cd ${STEAMAPPDIR} && tail -f $FIFO_PATH | ./start-server.sh ${ARGS}"

@@ -1,79 +1,135 @@
 # Project Zomboid Dedicated Server Docker (x86_64 & arm64)
 
-Este repositório fornece configurações Docker completas e estruturadas do zero para executar um servidor dedicado de **Project Zomboid** nas arquiteturas **x86_64** (Intel/AMD) e **arm64** (Apple Silicon, Raspberry Pi, VMs do Oracle Cloud Ampere, etc.).
+This repository provides complete and structured Docker configurations from scratch to run a dedicated **Project Zomboid** server on **x86_64** (Intel/AMD) and **arm64** (Apple Silicon, Raspberry Pi, Oracle Cloud Ampere VMs, etc.) architectures.
 
-Ambos os setups são construídos sob bases consistentes utilizando **Ubuntu 22.04** como imagem base e o usuário não-privilegiado `steam`.
+Both setups are built on consistent bases using **Ubuntu 22.04** as the base image and the non-privileged `steam` user.
 
-## Estrutura do Repositório
+## Repository Structure
 
-O projeto é dividido em dois diretórios correspondentes a cada arquitetura:
+The project is divided into two directories corresponding to each architecture:
 
-*   **`x86_64/`**: Configuração nativa construída a partir do Ubuntu 22.04, ideal para computadores e servidores padrão Intel ou AMD.
-*   **`arm64/`**: Configuração baseada em emulação de alto desempenho utilizando **Box86** (para a SteamCMD de 32 bits) e **Box64** (para a máquina virtual Java de 64 bits do Project Zomboid).
+*   **`x86_64/`**: Native configuration built from Ubuntu 22.04, ideal for standard Intel or AMD computers and servers.
+*   **`arm64/`**: High-performance emulation-based configuration utilizing **Box86** (for the 32-bit SteamCMD) and **Box64** (for the 64-bit Java Virtual Machine of Project Zomboid).
 
 ---
 
-## Configuração do Servidor (`.env`)
+## Server Configuration (`.env`)
 
-A configuração do servidor é feita de forma idêntica em ambas as arquiteturas através de arquivos de ambiente.
+Server configuration is done identically in both architectures through environment files.
 
-1. Acesse a pasta correspondente à sua arquitetura (`x86_64` ou `arm64`).
-2. Copie o arquivo `.env.template` para `.env`:
+1. Go to the folder corresponding to your architecture (`x86_64` or `arm64`).
+2. Copy the `.env.template` file to `.env`:
    ```bash
    cp .env.template .env
    ```
-3. Edite o arquivo `.env` para ajustar os parâmetros do seu servidor:
-   *   **`ADMINPASSWORD`**: (Obrigatório na primeira inicialização) Defina a senha do administrador do servidor.
-   *   **`MEMORY`**: RAM alocada para o servidor (ex: `4096m` ou `8096m`).
-   *   **`NOSTEAM`**: Defina como `True` se desejar permitir a conexão de clientes não oficiais/não-Steam.
-   *   **`MOD_IDS`** e **`WORKSHOP_IDS`**: IDs dos mods e itens do Workshop separados por ponto e vírgula.
+3. Edit the `.env` file to adjust your server parameters:
+   *   **`STEAMAPPBRANCH`**: Set the SteamCMD branch (e.g. `public` for Build 41, `unstable` for Build 42).
+   *   **`FORCEUPDATE`**: Set to `True` to force update game files on container start.
+   *   **`ADMINPASSWORD`**: (Required on first startup) Set the server administrator password.
+   *   **`MEMORY`**: RAM allocated for the server (e.g. `4096m` or `8192m`).
+   *   **`NOSTEAM`**: Set to `True` if you want to allow connections from non-official/non-Steam clients.
+   *   **`MOD_IDS`** and **`WORKSHOP_IDS`**: IDs of mods and Workshop items separated by semicolons.
 
 ---
 
-## Como Executar
+## How to Run
 
-### Opção 1: x86_64 (Nativo Intel/AMD)
+### Option 1: x86_64 (Native Intel/AMD)
 
-Entre no diretório e inicialize o container:
+Enter the directory and start the container:
 ```bash
 cd x86_64
 docker compose up -d --build
 ```
 
-### Opção 2: arm64 (Emulado via Box86/Box64)
+### Option 2: arm64 (Emulated via Box86/Box64)
 
-Esta imagem irá compilar as ferramentas de tradução de instruções **Box86** e **Box64** diretamente no container para rodar o jogo com desempenho próximo ao nativo (muito superior ao QEMU).
+This image will compile the **Box86** and **Box64** instruction translation tools directly inside the container to run the game with near-native performance (far superior to QEMU).
 
-Entre no diretório e inicialize o container:
+Enter the directory and start the container:
 ```bash
 cd arm64
 docker compose up -d --build
 ```
-*Nota: A compilação dos emuladores e o download inicial dos arquivos do jogo podem levar de 5 a 10 minutos na primeira execução.*
+*Note: Emulator compilation and the initial download of game files may take 5 to 10 minutes on the first run.*
 
 ---
 
-## Conectividade e Portas Requeridas
+## Server Management
 
-As portas já vêm pré-configuradas nos arquivos `docker-compose.yml` para suportar tanto clientes Steam quanto não Steam.
+Both architectures come with a command-line utility `pz-manage` inside the container to perform administrative tasks (backups, wipes, rollbacks, status checking, and sending live console commands) safely.
 
-Certifique-se de liberar/redirecionar as seguintes portas no firewall do seu sistema e roteador:
+### How to Run Commands
 
-### Portas Comuns (Steam & Geral)
-*   `16261/UDP` — Porta de rede de comunicação do servidor do jogo.
-*   `27015/TCP` — Porta opcional para RCON (gerenciamento remoto).
+You can execute the management commands directly from the host terminal using `docker compose exec`:
 
-### Portas para Clientes Não-Steam (Conexão Direta)
-Se você definiu `NOSTEAM=True` no seu `.env`, o servidor necessita das seguintes portas abertas:
-*   `8766/UDP` e `8767/UDP` — Portas query de autenticação.
-*   `16262-16272/TCP` — Intervalo de portas TCP de conexão direta. *Cada jogador conectado simultaneamente consome uma porta desse intervalo (ex: o intervalo padrão de 11 portas atende até 11 jogadores simultâneos).*
+*   **Check Server Status:**
+    ```bash
+    docker compose exec ProjectZomboidDedicatedServer pz-manage status
+    ```
+    *(For ARM64, replace `ProjectZomboidDedicatedServer` with `ProjectZomboidDedicatedServerArm64`).*
+
+*   **Send a Console Command:**
+    ```bash
+    docker compose exec ProjectZomboidDedicatedServer pz-manage send "<command>"
+    # Example:
+    docker compose exec ProjectZomboidDedicatedServer pz-manage send "servermsg 'Backup starting...'"
+    ```
+
+*   **Create a Backup:**
+    ```bash
+    # Hot backup (server stays online):
+    docker compose exec ProjectZomboidDedicatedServer pz-manage backup
+    # Cold backup (stops server, backs up, and restarts):
+    docker compose exec -it ProjectZomboidDedicatedServer pz-manage backup --cold
+    ```
+    *All backups are saved as `.tar.gz` files in `./data/Backups/`.*
+
+*   **Wipe Server Data:**
+    ```bash
+    docker compose exec -it ProjectZomboidDedicatedServer pz-manage wipe <type>
+    # Types:
+    # - world     : deletes map chunks and saves (keeps accounts/configs)
+    # - players   : deletes player database/characters (keeps map/configs)
+    # - all       : deletes map chunks and player databases
+    # - complete  : wipes everything except the Backups folder (hard reset)
+    ```
+
+*   **Rollback to a Backup:**
+    ```bash
+    docker compose exec -it ProjectZomboidDedicatedServer pz-manage rollback
+    ```
+    *Lists available backups and asks which one to restore.*
 
 ---
 
-## Como funciona a Emulação ARM64
+## Connectivity and Required Ports
 
-Devido à ausência de compilação nativa de Project Zomboid para processadores ARM, a pasta `arm64/` utiliza a seguinte estratégia de virtualização:
-1. **Compilação sob Medida**: Box86 e Box64 são compilados sob medida otimizados para arquiteturas ARMv8-A.
-2. **SteamCMD (32-bit x86)**: Traduzido via **Box86** com suporte a bibliotecas nativas de 32 bits (`armhf`) instaladas no container.
-3. **Project Zomboid (64-bit x86_64)**: Traduzido via **Box64** interceptando as chamadas da JRE (Java Runtime Environment) de 64 bits do jogo.
-4. **Resiliência (Auto-Cura)**: O script `entry.sh` na pasta `arm64/` monitora a integridade dos binários. Se uma atualização da SteamCMD ou do próprio jogo restaurar os executáveis originais x86 de Java ou SteamCMD, o script recria automaticamente os wrappers de tradução durante o boot.
+Ports are pre-configured in the `docker-compose.yml` files to support both Steam and non-Steam clients.
+
+Make sure to release/forward the following ports in your system's firewall and router:
+
+### Common Ports (Steam & General)
+*   `16261/UDP` — Main game server communication network port.
+*   `27015/TCP` — Optional port for RCON (remote management).
+
+### Ports for Non-Steam Clients (Direct Connection)
+If you defined `NOSTEAM=True` in your `.env`, the server requires the following ports to be open:
+*   `8766/UDP` and `8767/UDP` — Authentication query ports.
+*   `16262-16272/TCP` — Direct connection TCP port range. *Each simultaneously connected player consumes one port from this range (e.g. the default 11-port range handles up to 11 simultaneous players).*
+
+---
+
+## How ARM64 Emulation Works
+
+Due to the lack of native Project Zomboid builds for ARM processors, the `arm64/` folder uses the following virtualization strategy:
+1. **Custom Compilation**: Box86 and Box64 are compiled from source with optimizations targeted for ARMv8-A architectures.
+2. **SteamCMD (32-bit x86)**: Translated via **Box86** with support for native 32-bit libraries (`armhf`) installed in the container.
+3. **Project Zomboid (64-bit x86_64)**: Translated via **Box64**, intercepting calls to the game's 64-bit Java Runtime Environment (JRE).
+4. **Resilience (Self-Healing)**: The `entry.sh` script in the `arm64/` folder monitors binary integrity. If a SteamCMD or game update restores the original x86 Java or SteamCMD executables, the script automatically recreates the translation wrappers during boot.
+
+---
+
+## License
+
+This project is licensed under the **WTFPL (Do What The Fuck You Want To Public License)**. See the [LICENSE](file:///c:/development/pz-server-docker/LICENSE) file for details.
