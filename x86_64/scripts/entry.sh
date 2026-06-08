@@ -126,26 +126,44 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download
   echo "Installing or updating Project Zomboid Dedicated Server..."
   rm -f "${STEAMAPPDIR}/.download_complete"
   
+  MAX_RETRIES=3
+  RETRY_COUNT=0
+  SUCCESS=false
   STEAMCMD_OUT=$(mktemp)
-  chown steam:steam "$STEAMCMD_OUT"
   
-  if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
-    su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
-  else
-    su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
-  fi
+  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    echo "SteamCMD download attempt $RETRY_COUNT of $MAX_RETRIES..."
+    
+    if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
+      su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
+    else
+      su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
+    fi
 
-  # Check if steamcmd succeeded, files exist, and java is runnable
-  if [ ${PIPESTATUS[0]} -eq 0 ] && \
-     [ -f "${STEAMAPPDIR}/start-server.sh" ] && \
-     [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && \
-     [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && \
-     grep -q "fully installed" "$STEAMCMD_OUT" && \
-     is_jre_healthy; then
+    # Check if this attempt was successful
+    if [ ${PIPESTATUS[0]} -eq 0 ] && \
+       [ -f "${STEAMAPPDIR}/start-server.sh" ] && \
+       [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && \
+       [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && \
+       grep -q "fully installed" "$STEAMCMD_OUT" && \
+       is_jre_healthy; then
+      SUCCESS=true
+      break
+    else
+      echo "Warning: SteamCMD download attempt $RETRY_COUNT failed."
+      if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+        echo "Waiting 10 seconds before retrying..."
+        sleep 10
+      fi
+    fi
+  done
+
+  if [ "$SUCCESS" = true ]; then
     touch "${STEAMAPPDIR}/.download_complete"
     echo "Download completed successfully."
   else
-    echo "ERROR: SteamCMD download failed, was interrupted, or files are invalid. Please restart the container to resume."
+    echo "ERROR: SteamCMD download failed after $MAX_RETRIES attempts. Please restart the container to resume."
     rm -f "${STEAMAPPDIR}/.download_complete"
     rm -f "$STEAMCMD_OUT"
     exit 1
