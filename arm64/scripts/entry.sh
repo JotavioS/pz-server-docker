@@ -171,9 +171,9 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download
   rm -f "${STEAMAPPDIR}/.download_complete"
   
   if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
-    su steam -c "export DEBUGGER=/usr/local/bin/box64 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"
+    su steam -c "export DEBUGGER=/usr/local/bin/box64 && export BOX64_DYNAREC=0 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"
   else
-    su steam -c "export DEBUGGER=/usr/local/bin/box64 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"
+    su steam -c "export DEBUGGER=/usr/local/bin/box64 && export BOX64_DYNAREC=0 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"
   fi
   
   # Check if steamcmd succeeded and files exist
