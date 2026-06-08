@@ -105,25 +105,52 @@ fi
 
 cd ${STEAMAPPDIR}
 
+# Define JRE health check function
+is_jre_healthy() {
+  if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
+    LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
+    return $?
+  else
+    return 1
+  fi
+}
+
+# Run JRE health check and restore if unhealthy
+if ! is_jre_healthy; then
+  echo "JRE is missing, incomplete or corrupt. Forcing redownload/validation..."
+  rm -f "${STEAMAPPDIR}/.download_complete"
+fi
+
 # If the server files do not exist, or if FORCEUPDATE is set, or if previous download was incomplete, install/update the game
 if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download_complete" ] || [ "${FORCEUPDATE}" == "1" ] || [ "${FORCEUPDATE,,}" == "true" ]; then
   echo "Installing or updating Project Zomboid Dedicated Server..."
   rm -f "${STEAMAPPDIR}/.download_complete"
   
+  STEAMCMD_OUT=$(mktemp)
+  chown steam:steam "$STEAMCMD_OUT"
+  
   if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
-    su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"
+    su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
   else
-    su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"
+    su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
   fi
 
-  # Check if steamcmd succeeded and files exist
-  if [ $? -eq 0 ] && [ -f "${STEAMAPPDIR}/start-server.sh" ]; then
+  # Check if steamcmd succeeded, files exist, and java is runnable
+  if [ ${PIPESTATUS[0]} -eq 0 ] && \
+     [ -f "${STEAMAPPDIR}/start-server.sh" ] && \
+     [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && \
+     [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && \
+     grep -q "fully installed" "$STEAMCMD_OUT" && \
+     is_jre_healthy; then
     touch "${STEAMAPPDIR}/.download_complete"
     echo "Download completed successfully."
   else
-    echo "ERROR: SteamCMD download failed or was interrupted. Please restart the container to resume."
+    echo "ERROR: SteamCMD download failed, was interrupted, or files are invalid. Please restart the container to resume."
+    rm -f "${STEAMAPPDIR}/.download_complete"
+    rm -f "$STEAMCMD_OUT"
     exit 1
   fi
+  rm -f "$STEAMCMD_OUT"
 fi
 
 if [ "${FORCESTEAMCLIENTSOUPDATE}" == "1" ] || [ "${FORCESTEAMCLIENTSOUPDATE,,}" == "true" ]; then
