@@ -137,11 +137,11 @@ JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
   MAINCLASS=$(jq -r '.mainClass' "${JSON_FILE}" | tr '/' '.')
-  readarray -t VM_ARGS < <(jq -r '.vmArgs[]' "${JSON_FILE}")
+  readarray -t VM_ARGS < <(jq -r '.vmArgs[] | if . == "-XX:+UseZGC" then "-XX:+UseG1GC" else . end' "${JSON_FILE}")
 else
   CLASSPATH="java/:java/projectzomboid.jar"
   MAINCLASS="zombie.network.GameServer"
-  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/")
+  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/" "-XX:+UseG1GC")
 fi
 
 JVM_ARGS=()
@@ -159,7 +159,7 @@ for arg in "$@"; do
   fi
 done
 
-exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:+UseG1GC -XX:-UseCompressedOops -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
+exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
   chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
   chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
@@ -206,11 +206,11 @@ JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
   MAINCLASS=$(jq -r '.mainClass' "${JSON_FILE}" | tr '/' '.')
-  readarray -t VM_ARGS < <(jq -r '.vmArgs[]' "${JSON_FILE}")
+  readarray -t VM_ARGS < <(jq -r '.vmArgs[] | if . == "-XX:+UseZGC" then "-XX:+UseG1GC" else . end' "${JSON_FILE}")
 else
   CLASSPATH="java/:java/projectzomboid.jar"
   MAINCLASS="zombie.network.GameServer"
-  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/")
+  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/" "-XX:+UseG1GC")
 fi
 
 JVM_ARGS=()
@@ -228,7 +228,7 @@ for arg in "$@"; do
   fi
 done
 
-exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:+UseG1GC -XX:-UseCompressedOops -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
+exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
     chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
     chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
