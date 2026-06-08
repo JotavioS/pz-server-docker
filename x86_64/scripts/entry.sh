@@ -105,13 +105,24 @@ fi
 
 cd ${STEAMAPPDIR}
 
-# If the server files do not exist, or if FORCEUPDATE is set, install/update the game
-if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ "${FORCEUPDATE}" == "1" ] || [ "${FORCEUPDATE,,}" == "true" ]; then
+# If the server files do not exist, or if FORCEUPDATE is set, or if previous download was incomplete, install/update the game
+if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download_complete" ] || [ "${FORCEUPDATE}" == "1" ] || [ "${FORCEUPDATE,,}" == "true" ]; then
   echo "Installing or updating Project Zomboid Dedicated Server..."
+  rm -f "${STEAMAPPDIR}/.download_complete"
+  
   if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
     su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit"
   else
     su steam -c "${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit"
+  fi
+
+  # Check if steamcmd succeeded and files exist
+  if [ $? -eq 0 ] && [ -f "${STEAMAPPDIR}/start-server.sh" ]; then
+    touch "${STEAMAPPDIR}/.download_complete"
+    echo "Download completed successfully."
+  else
+    echo "ERROR: SteamCMD download failed or was interrupted. Please restart the container to resume."
+    exit 1
   fi
 fi
 
