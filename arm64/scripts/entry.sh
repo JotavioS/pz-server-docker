@@ -165,6 +165,7 @@ if [ -f "${STEAMAPPDIR}/.download_complete" ] && [ -f "${STEAMAPPDIR}/jre64/bin/
   echo "Writing/updating Java box64 wrapper..."
   cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
+unset LD_PRELOAD
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
@@ -184,6 +185,7 @@ if [ -f "${STEAMAPPDIR}/.download_complete" ] && [ -f "${STEAMAPPDIR}/ProjectZom
   echo "Writing/updating ProjectZomboid64 box64 wrapper..."
   cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
+unset LD_PRELOAD
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
@@ -274,6 +276,7 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download
     echo "Writing/updating Java box64 wrapper after installation..."
     cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
+unset LD_PRELOAD
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
@@ -293,6 +296,7 @@ EOF
     echo "Writing/updating ProjectZomboid64 box64 wrapper after installation..."
     cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
+unset LD_PRELOAD
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
