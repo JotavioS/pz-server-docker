@@ -212,7 +212,7 @@ for arg in "$@"; do
   fi
 done
 
-exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
+exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
   chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
   chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
@@ -323,7 +323,7 @@ for arg in "$@"; do
   fi
 done
 
-exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
+exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
     chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
     chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
