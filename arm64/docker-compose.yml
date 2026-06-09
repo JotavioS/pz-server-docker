@@ -2,6 +2,7 @@ services:
   ProjectZomboidDedicatedServerArm64:
     image: zomboid-server-arm64:latest
     restart: unless-stopped
+    tty: true
     build:
       context: .
       dockerfile: Dockerfile
