@@ -542,6 +542,8 @@ if [ ! -p "$FIFO_PATH" ]; then
   chmod 660 "$FIFO_PATH"
 fi
 
+# Keep the FIFO open for writing on FD 3 to prevent EOF when writers disconnect
+exec 3<> "$FIFO_PATH"
+
 # Run the server with stdin redirected from the FIFO
-# We keep the write descriptor open using tail -f to prevent EOF when commands finish writing
-su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && cd ${STEAMAPPDIR} && tail -f $FIFO_PATH | ./start-server.sh ${ARGS}"
+su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && cd ${STEAMAPPDIR} && ./start-server.sh ${ARGS} < $FIFO_PATH"
