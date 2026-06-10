@@ -1,7 +1,7 @@
 ###########################################################
 # Stage 1: Build Box64 with Box32 support
 ###########################################################
-FROM ubuntu:22.04 AS builder
+FROM debian:bookworm-slim AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -23,19 +23,15 @@ RUN git clone --depth 1 https://github.com/ptitSeb/box64.git /box64 && \
 ###########################################################
 # Stage 2: Final Image
 ###########################################################
-FROM ubuntu:22.04
+FROM debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Copy compiled emulator (Box64 with Box32 support)
 COPY --from=builder /tmp/install/usr/local/bin/box64 /usr/local/bin/box64
 
-# Configure multiarch and install dependencies (including 32-bit ARM libraries for Box32)
+# Configure multiarch and install dependencies (including 32-bit ARM and 64-bit AMD libraries for Box32/Box64)
 RUN dpkg --add-architecture armhf && \
     dpkg --add-architecture amd64 && \
-    sed -i 's/^deb /deb [arch=arm64,armhf] /' /etc/apt/sources.list && \
-    echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse" >> /etc/apt/sources.list && \
-    echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
-    echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse" >> /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -46,16 +42,11 @@ RUN dpkg --add-architecture armhf && \
     libc6:armhf \
     libncurses5:armhf \
     libstdc++6:armhf \
+    libc6:amd64 \
+    libstdc++6:amd64 \
+    libgcc-s1:amd64 \
     jq && \
-    mkdir -p /tmp/x86_64-libs && \
-    cd /tmp/x86_64-libs && \
-    apt-get download libstdc++6:amd64 libgcc-s1:amd64 && \
-    dpkg-deb -x libstdc++6*_amd64.deb . && \
-    dpkg-deb -x libgcc-s1*_amd64.deb . && \
-    mkdir -p /usr/lib/x86_64-linux-gnu && \
-    find . -name "libstdc++.so.6*" -exec cp -d {} /usr/lib/x86_64-linux-gnu/ \; && \
-    find . -name "libgcc_s.so.1*" -exec cp -d {} /usr/lib/x86_64-linux-gnu/ \; && \
-    rm -rf /tmp/x86_64-libs /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/*
 
 # Generate locales
 RUN sed -i 's/^# *\(es_ES.UTF-8\)/\1/' /etc/locale.gen && \

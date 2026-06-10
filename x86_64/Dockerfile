@@ -1,8 +1,8 @@
 ###########################################################
 # Dockerfile that builds a Project Zomboid Gameserver (x86_64)
-# Built from scratch on Ubuntu 22.04
+# Built from scratch on Debian 12
 ###########################################################
-FROM ubuntu:22.04
+FROM debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies (SteamCMD 32-bit prerequisites and other utilities)
