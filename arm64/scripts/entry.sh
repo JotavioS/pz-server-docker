@@ -219,7 +219,8 @@ if [ "${JVM_INTERPRETED,,}" = "true" ]; then
 elif [ -n "${JVM_TIERED_STOP_AT_LEVEL}" ]; then
   JIT_ARGS=("-XX:TieredStopAtLevel=${JVM_TIERED_STOP_AT_LEVEL}")
 else
-  JIT_ARGS=()  # Use JVM default: full tiered compilation (C1 + C2)
+  # Use JVM default (C1 + C2) but disable SuperWord (vectorization) and exclude Lua VM to prevent Box64 corruption
+  JIT_ARGS=("-XX:-UseSuperWord" "-XX:CompileCommand=exclude,se/krka/kahlua/*")
 fi
 
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
