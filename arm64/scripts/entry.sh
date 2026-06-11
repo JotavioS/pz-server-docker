@@ -119,7 +119,7 @@ is_jre_healthy() {
       if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" = "#!" ]; then
         if [ -f "${STEAMAPPDIR}/jre64/bin/java.real" ]; then
           if [ -f "/usr/local/bin/box64" ]; then
-            LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=1 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=1 BOX64_DYNAREC_SAFEFLAGS=1 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
+            LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=0 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=3 BOX64_DYNAREC_SAFEFLAGS=2 BOX64_SSE42=0 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
             return $?
           else
             LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
@@ -130,7 +130,7 @@ is_jre_healthy() {
         fi
       else
         if [ -f "/usr/local/bin/box64" ]; then
-          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=1 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=1 BOX64_DYNAREC_SAFEFLAGS=1 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
+          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=0 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=3 BOX64_DYNAREC_SAFEFLAGS=2 BOX64_SSE42=0 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
           return $?
         else
           LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
@@ -182,10 +182,11 @@ EOF
     cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
 unset LD_PRELOAD
-export BOX64_JVM=1
+export BOX64_JVM=0
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=3
 export BOX64_DYNAREC_SAFEFLAGS=2
+export BOX64_SSE42=0
 export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
@@ -302,10 +303,11 @@ EOF
       cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
 unset LD_PRELOAD
-export BOX64_JVM=1
+export BOX64_JVM=0
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=3
 export BOX64_DYNAREC_SAFEFLAGS=2
+export BOX64_SSE42=0
 export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
