@@ -196,12 +196,18 @@ EOF
 fi
 
 # Ensure ProjectZomboid64 box64 wrapper is in place (self-healing)
-if [ -f "${STEAMAPPDIR}/.download_complete" ] && [ -f "${STEAMAPPDIR}/ProjectZomboid64" ]; then
-  if [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
+# Triggers if: file exists (and may need backup) OR file is missing but .real backup exists
+if [ -f "${STEAMAPPDIR}/.download_complete" ] && \
+   { [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] || [ -f "${STEAMAPPDIR}/ProjectZomboid64.real" ]; }; then
+  if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
     echo "Backing up raw ProjectZomboid64 binary..."
     mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
   fi
-  echo "Writing/updating ProjectZomboid64 box64 wrapper..."
+  if [ ! -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ -f "${STEAMAPPDIR}/ProjectZomboid64.real" ]; then
+    echo "ProjectZomboid64 wrapper missing (crashed?), recreating from backup..."
+  else
+    echo "Writing/updating ProjectZomboid64 box64 wrapper..."
+  fi
   cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
 unset LD_PRELOAD
