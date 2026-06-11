@@ -22,3 +22,5 @@ services:
       - ./server-files:/home/steam/pz-dedicated
       # Workshop mods folder
       - ./workshop-mods:/home/steam/pz-dedicated/steamapps/workshop
+      # Hot-reload entry script without image rebuild
+      - ./scripts/entry.sh:/server/scripts/entry.sh:ro
