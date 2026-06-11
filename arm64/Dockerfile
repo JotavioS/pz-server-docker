@@ -29,12 +29,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Copy compiled emulator (Box64 with Box32 support)
 COPY --from=builder /tmp/install/usr/local/bin/box64 /usr/local/bin/box64
 
-# Configure multiarch and install dependencies (including 32-bit ARM and 64-bit AMD libraries for Box32/Box64)
+# Configure multiarch, add Adoptium repository, and install dependencies (including 32-bit ARM and 64-bit AMD libraries for Box32/Box64)
 RUN dpkg --add-architecture armhf && \
     dpkg --add-architecture amd64 && \
     apt-get update && \
+    apt-get install -y --no-install-recommends wget gnupg ca-certificates && \
+    wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor > /etc/apt/trusted.gpg.d/adoptium.gpg && \
+    echo "deb https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
-    ca-certificates \
     curl \
     tar \
     dos2unix \
@@ -45,7 +48,7 @@ RUN dpkg --add-architecture armhf && \
     libc6:amd64 \
     libstdc++6:amd64 \
     libgcc-s1:amd64 \
-    openjdk-17-jre-headless \
+    temurin-25-jdk \
     jq && \
     rm -rf /var/lib/apt/lists/*
 
