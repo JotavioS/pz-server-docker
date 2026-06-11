@@ -206,14 +206,26 @@ if [ -f "${STEAMAPPDIR}/.download_complete" ] && [ -f "${STEAMAPPDIR}/ProjectZom
 #!/bin/bash
 unset LD_PRELOAD
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
+
+GC_CHOICE="${JVM_GC:-UseSerialGC}"
+if [ "${JVM_INTERPRETED,,}" = "true" ]; then
+  JIT_ARGS=("-Xint")
+else
+  if [ -n "${JVM_TIERED_STOP_AT_LEVEL}" ]; then
+    JIT_ARGS=("-XX:TieredStopAtLevel=${JVM_TIERED_STOP_AT_LEVEL}")
+  else
+    JIT_ARGS=("-XX:-TieredCompilation")
+  fi
+fi
+
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
   MAINCLASS=$(jq -r '.mainClass' "${JSON_FILE}" | tr '/' '.')
-  readarray -t VM_ARGS < <(jq -r '.vmArgs[] | if . == "-XX:+UseZGC" then "-XX:+UseG1GC" else . end' "${JSON_FILE}")
+  readarray -t VM_ARGS < <(jq -r --arg gc "-XX:+$GC_CHOICE" '.vmArgs[] | if . == "-XX:+UseZGC" then $gc else . end' "${JSON_FILE}")
 else
   CLASSPATH="java/:java/projectzomboid.jar"
   MAINCLASS="zombie.network.GameServer"
-  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/" "-XX:+UseG1GC")
+  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/" "-XX:+$GC_CHOICE")
 fi
 
 JVM_ARGS=()
@@ -231,7 +243,7 @@ for arg in "$@"; do
   fi
 done
 
-exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
+exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
   chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
   chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
@@ -327,14 +339,26 @@ EOF
 #!/bin/bash
 unset LD_PRELOAD
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
+
+GC_CHOICE="${JVM_GC:-UseSerialGC}"
+if [ "${JVM_INTERPRETED,,}" = "true" ]; then
+  JIT_ARGS=("-Xint")
+else
+  if [ -n "${JVM_TIERED_STOP_AT_LEVEL}" ]; then
+    JIT_ARGS=("-XX:TieredStopAtLevel=${JVM_TIERED_STOP_AT_LEVEL}")
+  else
+    JIT_ARGS=("-XX:-TieredCompilation")
+  fi
+fi
+
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
   MAINCLASS=$(jq -r '.mainClass' "${JSON_FILE}" | tr '/' '.')
-  readarray -t VM_ARGS < <(jq -r '.vmArgs[] | if . == "-XX:+UseZGC" then "-XX:+UseG1GC" else . end' "${JSON_FILE}")
+  readarray -t VM_ARGS < <(jq -r --arg gc "-XX:+$GC_CHOICE" '.vmArgs[] | if . == "-XX:+UseZGC" then $gc else . end' "${JSON_FILE}")
 else
   CLASSPATH="java/:java/projectzomboid.jar"
   MAINCLASS="zombie.network.GameServer"
-  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/" "-XX:+UseG1GC")
+  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/" "-XX:+$GC_CHOICE")
 fi
 
 JVM_ARGS=()
@@ -352,7 +376,7 @@ for arg in "$@"; do
   fi
 done
 
-exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:TieredStopAtLevel=1 "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
+exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
     chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
     chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
@@ -575,4 +599,4 @@ fi
 exec 3<> "$FIFO_PATH"
 
 # Run the server with stdin redirected from the FIFO
-su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && cd ${STEAMAPPDIR} && ./start-server.sh ${ARGS} < $FIFO_PATH"
+su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && export JVM_GC=\"${JVM_GC}\" && export JVM_INTERPRETED=\"${JVM_INTERPRETED}\" && export JVM_TIERED_STOP_AT_LEVEL=\"${JVM_TIERED_STOP_AT_LEVEL}\" && cd ${STEAMAPPDIR} && ./start-server.sh ${ARGS} < $FIFO_PATH"
