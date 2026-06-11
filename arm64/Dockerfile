@@ -45,6 +45,7 @@ RUN dpkg --add-architecture armhf && \
     libc6:amd64 \
     libstdc++6:amd64 \
     libgcc-s1:amd64 \
+    openjdk-17-jre-headless \
     jq && \
     rm -rf /var/lib/apt/lists/*
 
@@ -64,8 +65,10 @@ ENV HOME="${HOMEDIR}"
 ENV BOX64_JVM=1
 ENV BOX64_DYNAREC_BIGBLOCK=0
 ENV BOX64_DYNAREC_STRONGMEM=1
+ENV BOX64_DYNAREC_SAFEFLAGS=1
 ENV LD_PRELOAD="libpthread.so.0"
 ENV BOX64_LD_PRELOAD="libpthread.so.0"
+ENV USE_SYSTEM_JAVA="true"
 
 # Create steam user
 RUN useradd -m -s /bin/bash steam
@@ -80,7 +83,7 @@ RUN mkdir -p "${STEAMCMDDIR}" && \
 ENV DEBUGGER="/usr/local/bin/box64"
 
 # Optimize box64 dynarec for steamcmd (thread safety and stability)
-RUN printf '[steamcmd]\nBOX64_DYNAREC_BIGBLOCK=3\nBOX64_DYNAREC_CALLRET=2\nBOX64_DYNAREC_STRONGMEM=1\n\n' >> /etc/box64.box64rc
+RUN printf '[steamcmd]\nBOX64_DYNAREC_BIGBLOCK=0\nBOX64_DYNAREC_STRONGMEM=1\nBOX64_DYNAREC_SAFEFLAGS=1\n\n' >> /etc/box64.box64rc
 
 # Run steamcmd to update itself during build
 RUN /home/steam/steamcmd/steamcmd.sh +quit || true

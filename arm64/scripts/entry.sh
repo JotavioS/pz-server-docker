@@ -107,30 +107,39 @@ cd ${STEAMAPPDIR}
 
 # Define JRE health check function
 is_jre_healthy() {
-  if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
-    if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" = "#!" ]; then
-      if [ -f "${STEAMAPPDIR}/jre64/bin/java.real" ]; then
-        if [ -f "/usr/local/bin/box64" ]; then
-          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=1 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=1 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
-          return $?
-        else
-          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
-          return $?
-        fi
-      else
-        return 1
-      fi
+  if [ "${USE_SYSTEM_JAVA,,}" = "true" ]; then
+    if [ -f "/usr/bin/java" ]; then
+      /usr/bin/java -version > /dev/null 2>&1
+      return $?
     else
-      if [ -f "/usr/local/bin/box64" ]; then
-        LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=1 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=1 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
-        return $?
-      else
-        LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
-        return $?
-      fi
+      return 1
     fi
   else
-    return 1
+    if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
+      if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" = "#!" ]; then
+        if [ -f "${STEAMAPPDIR}/jre64/bin/java.real" ]; then
+          if [ -f "/usr/local/bin/box64" ]; then
+            LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=1 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=1 BOX64_DYNAREC_SAFEFLAGS=1 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
+            return $?
+          else
+            LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
+            return $?
+          fi
+        else
+          return 1
+        fi
+      else
+        if [ -f "/usr/local/bin/box64" ]; then
+          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=1 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=1 BOX64_DYNAREC_SAFEFLAGS=1 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
+          return $?
+        else
+          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
+          return $?
+        fi
+      fi
+    else
+      return 1
+    fi
   fi
 }
 
@@ -162,16 +171,25 @@ if [ -f "${STEAMAPPDIR}/.download_complete" ] && [ -f "${STEAMAPPDIR}/jre64/bin/
     echo "Backing up raw Java binary..."
     mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real"
   fi
-  echo "Writing/updating Java box64 wrapper..."
-  cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
+  if [ "${USE_SYSTEM_JAVA,,}" = "true" ]; then
+    echo "Writing/updating Java wrapper to use native ARM64 Java..."
+    cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
+#!/bin/bash
+exec /usr/bin/java "$@"
+EOF
+  else
+    echo "Writing/updating Java box64 wrapper to use bundled JRE..."
+    cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
 unset LD_PRELOAD
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
+export BOX64_DYNAREC_SAFEFLAGS=1
 export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
+  fi
   chmod +x "${STEAMAPPDIR}/jre64/bin/java"
   chown steam:steam "${STEAMAPPDIR}/jre64/bin/java"
 fi
@@ -233,9 +251,9 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download
     echo "SteamCMD download attempt $RETRY_COUNT of $MAX_RETRIES..."
     
     if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
-      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export BOX64_DYNAREC=0 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
+      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export BOX64_DYNAREC=1 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
     else
-      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export BOX64_DYNAREC=0 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
+      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export BOX64_DYNAREC=1 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
     fi
     
     # Check if this attempt was successful
@@ -273,16 +291,25 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download
       echo "Backing up raw Java binary after installation..."
       mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real"
     fi
-    echo "Writing/updating Java box64 wrapper after installation..."
-    cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
+    if [ "${USE_SYSTEM_JAVA,,}" = "true" ]; then
+      echo "Writing/updating Java wrapper after installation to use native ARM64 Java..."
+      cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
+#!/bin/bash
+exec /usr/bin/java "$@"
+EOF
+    else
+      echo "Writing/updating Java box64 wrapper after installation to use bundled JRE..."
+      cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
 unset LD_PRELOAD
 export BOX64_JVM=1
 export BOX64_DYNAREC_BIGBLOCK=0
 export BOX64_DYNAREC_STRONGMEM=1
+export BOX64_DYNAREC_SAFEFLAGS=1
 export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
+    fi
     chmod +x "${STEAMAPPDIR}/jre64/bin/java"
     chown steam:steam "${STEAMAPPDIR}/jre64/bin/java"
   fi
