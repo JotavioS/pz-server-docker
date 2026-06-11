@@ -213,7 +213,7 @@ if [ -f "${STEAMAPPDIR}/.download_complete" ] && \
 unset LD_PRELOAD
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
 
-GC_CHOICE="${JVM_GC:-UseParallelGC}"
+GC_CHOICE="${JVM_GC:-UseSerialGC}"
 if [ "${JVM_INTERPRETED,,}" = "true" ]; then
   JIT_ARGS=("-Xint")
 elif [ -n "${JVM_TIERED_STOP_AT_LEVEL}" ]; then
