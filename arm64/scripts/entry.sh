@@ -213,7 +213,7 @@ if [ -f "${STEAMAPPDIR}/.download_complete" ] && \
 unset LD_PRELOAD
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
 
-GC_CHOICE="${JVM_GC:-UseSerialGC}"
+GC_CHOICE="${JVM_GC:-UseParallelGC}"
 if [ "${JVM_INTERPRETED,,}" = "true" ]; then
   JIT_ARGS=("-Xint")
 elif [ -n "${JVM_TIERED_STOP_AT_LEVEL}" ]; then
@@ -248,6 +248,10 @@ for arg in "$@"; do
   fi
 done
 
+export BOX64_DYNAREC_STRONGMEM=1
+export BOX64_DYNAREC_SAFEFLAGS=1
+export BOX64_DYNAREC_BIGBLOCK=1
+export BOX64_DYNAREC_FORWARD=1
 exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
   chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
