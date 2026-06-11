@@ -81,6 +81,7 @@ RUN mkdir -p "${STEAMCMDDIR}" && \
 
 # Set the DEBUGGER env variable to use Box64 for executing SteamCMD
 ENV DEBUGGER="/usr/local/bin/box64"
+ENV STEAM_PLATFORM="linux64"
 
 # Optimize box64 dynarec for steamcmd (thread safety and stability)
 RUN printf '[steamcmd]\nBOX64_DYNAREC_BIGBLOCK=0\nBOX64_DYNAREC_STRONGMEM=1\nBOX64_DYNAREC_SAFEFLAGS=1\n\n' >> /etc/box64.box64rc

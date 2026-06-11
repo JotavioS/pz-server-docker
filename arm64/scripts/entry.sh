@@ -251,9 +251,9 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download
     echo "SteamCMD download attempt $RETRY_COUNT of $MAX_RETRIES..."
     
     if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
-      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export BOX64_DYNAREC=1 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
+      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export STEAM_PLATFORM=linux64 && export BOX64_DYNAREC=1 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
     else
-      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export BOX64_DYNAREC=1 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
+      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export STEAM_PLATFORM=linux64 && export BOX64_DYNAREC=1 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
     fi
     
     # Check if this attempt was successful
