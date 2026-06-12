@@ -406,6 +406,15 @@ if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   chown steam:steam "${JSON_FILE}"
 fi
 
+# Create a wrapper bin directory to intercept PATH lookups without modifying pristine binaries
+mkdir -p "${STEAMAPPDIR}/box64-wrappers"
+cat << EOF > "${STEAMAPPDIR}/box64-wrappers/java"
+#!/bin/bash
+exec /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java" "\$@"
+EOF
+chmod +x "${STEAMAPPDIR}/box64-wrappers/java"
+chown -R steam:steam "${STEAMAPPDIR}/box64-wrappers"
+
 # Patch start-server.sh to explicitly use box64 and prevent JVM bitness check failures
 if [ -f "${STEAMAPPDIR}/start-server.sh" ]; then
   # Remove previous box64 injections if any to prevent duplication
@@ -413,6 +422,9 @@ if [ -f "${STEAMAPPDIR}/start-server.sh" ]; then
   
   # Inject box64 into the java version check
   sed -i 's|"${INSTDIR}/jre64/bin/java" -version|/usr/local/bin/box64 "${INSTDIR}/jre64/bin/java" -version|g' "${STEAMAPPDIR}/start-server.sh"
+  
+  # Inject box64-wrappers into the PATH export inside start-server.sh
+  sed -i 's|export PATH="${INSTDIR}/jre64/bin:$PATH"|export PATH="${INSTDIR}/box64-wrappers:${INSTDIR}/jre64/bin:$PATH"|g' "${STEAMAPPDIR}/start-server.sh"
   
   # Inject box64 into the ProjectZomboid64 execution line
   sed -i 's|\./ProjectZomboid64|/usr/local/bin/box64 ./ProjectZomboid64|g' "${STEAMAPPDIR}/start-server.sh"
