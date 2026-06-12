@@ -197,6 +197,11 @@ if [ "${SOFTRESET}" == "1" ] || [ "${SOFTRESET,,}" == "true" ]; then
   ARGS="${ARGS} -Dsoftreset"
 fi
 
+# Custom JVM arguments
+if [ -n "${JVM_ARGS}" ]; then
+  ARGS="${ARGS} ${JVM_ARGS}"
+fi
+
 # End of Java arguments
 ARGS="${ARGS} -- "
 
@@ -368,6 +373,12 @@ if [ -e "${HOMEDIR}/pz-dedicated/steamapps/workshop/content/108600" ]; then
         fi
     done
   fi 
+fi
+
+# Clean up duplicate/conflicting GC settings in ProjectZomboid64.json if G1GC is selected
+if [ -f "${STEAMAPPDIR}/ProjectZomboid64.json" ] && [[ "${JVM_ARGS}" == *"+UseG1GC"* ]]; then
+  echo "Adjusting ProjectZomboid64.json to use G1GC..."
+  sed -i 's/"-XX:+UseZGC"/"-XX:+UseG1GC"/' "${STEAMAPPDIR}/ProjectZomboid64.json"
 fi
 
 # Fix to a bug in start-server.sh that causes to no preload a library:
