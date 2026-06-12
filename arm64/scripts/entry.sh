@@ -431,4 +431,4 @@ if [ -f "${STEAMAPPDIR}/start-server.sh" ]; then
 fi
 
 # Run the server with stdin redirected from the FIFO
-su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && export BOX64_JVM=0 && export BOX64_DYNAREC_STRONGMEM=1 && export BOX64_DYNAREC_SAFEFLAGS=2 && export BOX64_DYNAREC_BIGBLOCK=0 && export BOX64_DYNAREC_FORWARD=1 && export BOX64_SSE42=0 && cd ${STEAMAPPDIR} && ./start-server.sh ${ARGS} < $FIFO_PATH"
+su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && export BOX64_DYNAREC_STRONGMEM=1 && cd ${STEAMAPPDIR} && ./start-server.sh ${ARGS} < $FIFO_PATH"
