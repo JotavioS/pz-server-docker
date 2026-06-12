@@ -116,135 +116,18 @@ is_jre_healthy() {
     fi
   else
     if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
-      if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" = "#!" ]; then
-        if [ -f "${STEAMAPPDIR}/jre64/bin/java.real" ]; then
-          su steam -c "LD_LIBRARY_PATH=\"${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}\" FEXInterpreter \"${STEAMAPPDIR}/jre64/bin/java.real\" -version > /dev/null 2>&1"
-          return $?
-        else
-          return 1
-        fi
-      else
-        su steam -c "LD_LIBRARY_PATH=\"${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}\" FEXInterpreter \"${STEAMAPPDIR}/jre64/bin/java\" -version > /dev/null 2>&1"
-        return $?
-      fi
+      su steam -c "LD_LIBRARY_PATH=\"${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}\" FEXInterpreter \"${STEAMAPPDIR}/jre64/bin/java\" -version > /dev/null 2>&1"
+      return $?
     else
       return 1
     fi
   fi
 }
 
-# Run JRE health check and restore raw binaries if unhealthy
+# Run JRE health check
 if ! is_jre_healthy; then
-  echo "JRE is missing, incomplete or corrupt. Resetting wrappers and forcing redownload/validation..."
+  echo "JRE is missing, incomplete or corrupt. Forcing redownload/validation..."
   rm -f "${STEAMAPPDIR}/.download_complete"
-  
-  if [ -f "${STEAMAPPDIR}/jre64/bin/java" ] && [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" = "#!" ]; then
-    if [ -f "${STEAMAPPDIR}/jre64/bin/java.real" ]; then
-      mv -f "${STEAMAPPDIR}/jre64/bin/java.real" "${STEAMAPPDIR}/jre64/bin/java"
-    else
-      rm -f "${STEAMAPPDIR}/jre64/bin/java"
-    fi
-  fi
-  
-  if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" = "#!" ]; then
-    if [ -f "${STEAMAPPDIR}/ProjectZomboid64.real" ]; then
-      mv -f "${STEAMAPPDIR}/ProjectZomboid64.real" "${STEAMAPPDIR}/ProjectZomboid64"
-    else
-      rm -f "${STEAMAPPDIR}/ProjectZomboid64"
-    fi
-  fi
-fi
-
-# Ensure Java box64 wrapper is in place (self-healing)
-if [ -f "${STEAMAPPDIR}/.download_complete" ] && [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
-  if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" != "#!" ]; then
-    echo "Backing up raw Java binary..."
-    mv "${STEAMAPPDIR}/jre64/bin/java" "${STEAMAPPDIR}/jre64/bin/java.real"
-  fi
-  if [ "${USE_SYSTEM_JAVA,,}" = "true" ]; then
-    echo "Writing/updating Java wrapper to use native ARM64 Java..."
-    cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
-#!/bin/bash
-exec /usr/bin/java "$@"
-EOF
-  else
-    echo "Writing/updating Java FEX-Emu wrapper to use bundled JRE..."
-    cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
-#!/bin/bash
-export CPU_MHZ=2000
-export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-exec FEXInterpreter /home/steam/pz-dedicated/jre64/bin/java.real "$@"
-EOF
-  fi
-  chmod +x "${STEAMAPPDIR}/jre64/bin/java"
-  chown steam:steam "${STEAMAPPDIR}/jre64/bin/java"
-fi
-
-# Ensure ProjectZomboid64 box64 wrapper is in place (self-healing)
-# Triggers if: file exists (and may need backup) OR file is missing but .real backup exists
-if [ -f "${STEAMAPPDIR}/.download_complete" ] && \
-   { [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] || [ -f "${STEAMAPPDIR}/ProjectZomboid64.real" ]; }; then
-  if [ -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ "$(head -c 2 "${STEAMAPPDIR}/ProjectZomboid64")" != "#!" ]; then
-    echo "Backing up raw ProjectZomboid64 binary..."
-    mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
-  fi
-  if [ ! -f "${STEAMAPPDIR}/ProjectZomboid64" ] && [ -f "${STEAMAPPDIR}/ProjectZomboid64.real" ]; then
-    echo "ProjectZomboid64 wrapper missing (crashed?), recreating from backup..."
-  else
-    echo "Writing/updating ProjectZomboid64 box64 wrapper..."
-  fi
-  cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
-#!/bin/bash
-export CPU_MHZ=2000
-JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
-
-# Auto-fix UseZGC to UseG1GC for FEX-Emu stability
-if [ -f "${JSON_FILE}" ]; then
-  sed -i 's/-XX:+UseZGC/-XX:+UseG1GC/g' "${JSON_FILE}"
-fi
-
-GC_CHOICE="${JVM_GC:-UseSerialGC}"
-if [ "${JVM_INTERPRETED,,}" = "true" ]; then
-  JIT_ARGS=("-Xint")
-elif [ -n "${JVM_TIERED_STOP_AT_LEVEL}" ]; then
-  JIT_ARGS=("-XX:TieredStopAtLevel=${JVM_TIERED_STOP_AT_LEVEL}")
-else
-  # Use JVM default: full tiered compilation (C1 + C2)
-  JIT_ARGS=()
-fi
-
-if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
-  CLASSPATH=$(jq -r '.classpath | join(":")' "${JSON_FILE}")
-  MAINCLASS=$(jq -r '.mainClass' "${JSON_FILE}" | tr '/' '.')
-  readarray -t VM_ARGS < <(jq -r --arg gc "-XX:+$GC_CHOICE" '.vmArgs[] | if . == "-XX:+UseZGC" then $gc else . end' "${JSON_FILE}")
-else
-  CLASSPATH="java/:java/projectzomboid.jar"
-  MAINCLASS="zombie.network.GameServer"
-  VM_ARGS=("-Xms16g" "-Xmx16g" "-Dzomboid.steam=1" "-Dzomboid.znetlog=1" "-Djava.library.path=linux64/:natives/" "-XX:+$GC_CHOICE")
-fi
-
-JVM_ARGS=()
-APP_ARGS=()
-in_app_args=false
-for arg in "$@"; do
-  if [ "$arg" = "--" ]; then
-    in_app_args=true
-    continue
-  fi
-  if [ "$in_app_args" = true ]; then
-    APP_ARGS+=("$arg")
-  else
-    JVM_ARGS+=("$arg")
-  fi
-done
-
-# Build 42 / FEX-Emu compatibility flags (Disables Java 17+ reflection optimization to prevent FEX crashes)
-JVM_ARGS+=("-Dsun.reflect.noInflation=true" "-Djdk.reflect.useDirectMethodHandle=false" "-XX:CompileCommand=exclude,java/lang/Class,reflectionData")
-
-exec FEXInterpreter /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
-EOF
-  chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
-  chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
 fi
 
 # If the server files do not exist, or if FORCEUPDATE is set, or if previous download was incomplete, install/update the game
@@ -605,5 +488,14 @@ fi
 # Keep the FIFO open for writing on FD 3 to prevent EOF when writers disconnect
 exec 3<> "$FIFO_PATH"
 
+# Inject FEX compatibility flags and UseG1GC into ProjectZomboid64.json
+JSON_FILE="${STEAMAPPDIR}/ProjectZomboid64.json"
+if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
+  echo "Injecting FEX-Emu compatibility arguments into ProjectZomboid64.json..."
+  jq '.vmArgs = (.vmArgs | map(if . == "-XX:+UseZGC" then "-XX:+UseG1GC" else . end) + ["-Dsun.reflect.noInflation=true", "-Djdk.reflect.useDirectMethodHandle=false", "-XX:CompileCommand=exclude,java/lang/Class,reflectionData"] | unique)' "${JSON_FILE}" > "${JSON_FILE}.tmp"
+  mv "${JSON_FILE}.tmp" "${JSON_FILE}"
+  chown steam:steam "${JSON_FILE}"
+fi
+
 # Run the server with stdin redirected from the FIFO
-su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && export JVM_GC=\"${JVM_GC}\" && export JVM_INTERPRETED=\"${JVM_INTERPRETED}\" && export JVM_TIERED_STOP_AT_LEVEL=\"${JVM_TIERED_STOP_AT_LEVEL}\" && cd ${STEAMAPPDIR} && ./start-server.sh ${ARGS} < $FIFO_PATH"
+su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && cd ${STEAMAPPDIR} && FEXBash ./start-server.sh ${ARGS} < $FIFO_PATH"
