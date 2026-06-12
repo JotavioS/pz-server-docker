@@ -35,11 +35,13 @@ ENV USE_SYSTEM_JAVA="false"
 # Create steam user
 RUN useradd -m -s /bin/bash steam
 
-# Fetch FEX RootFS for x86_64 emulation globally
-RUN FEXRootFSFetcher -y -x
-
-# Setup steamcmd
-WORKDIR ${HOMEDIR}
+# Fetch FEX RootFS for x86_64 emulation directly
+RUN mkdir -p /home/steam/.fex-emu/RootFS && \
+    wget -O /tmp/Ubuntu_22_04.tar.gz "https://www.dropbox.com/scl/fi/16mhn3jrwvzapdw50gt20/Ubuntu_22_04.tar.gz?rlkey=4m256iahwtcijkpzcv8abn7nf" && \
+    tar xzf /tmp/Ubuntu_22_04.tar.gz -C /home/steam/.fex-emu/RootFS/ && \
+    rm /tmp/Ubuntu_22_04.tar.gz && \
+    echo '{"Config":{"RootFS":"Ubuntu_22_04"}}' > /home/steam/.fex-emu/Config.json && \
+    chown -R steam:steam /home/steam/.fex-emu
 
 RUN mkdir -p "${STEAMCMDDIR}" && \
     curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar -C "${STEAMCMDDIR}" -zxvf -
