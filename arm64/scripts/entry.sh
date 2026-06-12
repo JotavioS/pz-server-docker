@@ -481,7 +481,7 @@ exec 3<> "$FIFO_PATH"
 JSON_FILE="${STEAMAPPDIR}/ProjectZomboid64.json"
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   echo "Injecting Box64 compatibility arguments into ProjectZomboid64.json..."
-  jq '.vmArgs = (.vmArgs | map(if . == "-XX:+UseZGC" then "-XX:+UseG1GC" else . end) + ["-Dsun.reflect.noInflation=true", "-Djdk.reflect.useDirectMethodHandle=false", "-XX:CompileCommand=exclude,java/lang/Class,reflectionData", "-XX:-UseSuperWord"] | unique)' "${JSON_FILE}" > "${JSON_FILE}.tmp"
+  jq '.vmArgs = (.vmArgs | map(if . == "-XX:+UseZGC" then "-XX:+UseG1GC" else . end) + ["-Dsun.reflect.noInflation=true", "-Djdk.reflect.useDirectMethodHandle=false", "-XX:CompileCommand=exclude,java/lang/Class,reflectionData", "-XX:CompileCommand=exclude,se/krka/kahlua/*,*", "-XX:-UseSuperWord"] | unique)' "${JSON_FILE}" > "${JSON_FILE}.tmp"
   mv "${JSON_FILE}.tmp" "${JSON_FILE}"
   chown steam:steam "${JSON_FILE}"
 fi
