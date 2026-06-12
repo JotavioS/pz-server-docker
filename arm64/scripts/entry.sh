@@ -238,6 +238,9 @@ for arg in "$@"; do
   fi
 done
 
+# Build 42 / FEX-Emu compatibility flags (Disables Java 17+ reflection optimization to prevent FEX crashes)
+JVM_ARGS+=("-Dsun.reflect.noInflation=true" "-Djdk.reflect.useDirectMethodHandle=false" "-XX:CompileCommand=exclude,java/lang/Class,reflectionData")
+
 exec FEXInterpreter /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
   chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
@@ -376,6 +379,9 @@ for arg in "$@"; do
     JVM_ARGS+=("$arg")
   fi
 done
+
+# Build 42 / FEX-Emu compatibility flags (Disables Java 17+ reflection optimization to prevent FEX crashes)
+JVM_ARGS+=("-Dsun.reflect.noInflation=true" "-Djdk.reflect.useDirectMethodHandle=false" "-XX:CompileCommand=exclude,java/lang/Class,reflectionData")
 
 exec FEXInterpreter /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
