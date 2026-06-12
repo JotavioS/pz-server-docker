@@ -118,24 +118,14 @@ is_jre_healthy() {
     if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
       if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" = "#!" ]; then
         if [ -f "${STEAMAPPDIR}/jre64/bin/java.real" ]; then
-          if [ -f "/usr/local/bin/box64" ]; then
-            LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=0 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=3 BOX64_DYNAREC_SAFEFLAGS=2 BOX64_SSE42=0 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
-            return $?
-          else
-            LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
-            return $?
-          fi
+          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" FEXInterpreter "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
+          return $?
         else
           return 1
         fi
       else
-        if [ -f "/usr/local/bin/box64" ]; then
-          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" BOX64_JVM=0 BOX64_DYNAREC_BIGBLOCK=0 BOX64_DYNAREC_STRONGMEM=3 BOX64_DYNAREC_SAFEFLAGS=2 BOX64_SSE42=0 /usr/local/bin/box64 "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
-          return $?
-        else
-          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
-          return $?
-        fi
+        LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" FEXInterpreter "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
+        return $?
       fi
     else
       return 1
@@ -178,17 +168,12 @@ if [ -f "${STEAMAPPDIR}/.download_complete" ] && [ -f "${STEAMAPPDIR}/jre64/bin/
 exec /usr/bin/java "$@"
 EOF
   else
-    echo "Writing/updating Java box64 wrapper to use bundled JRE..."
+    echo "Writing/updating Java FEX-Emu wrapper to use bundled JRE..."
     cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
-unset LD_PRELOAD
-export BOX64_JVM=0
-export BOX64_DYNAREC_BIGBLOCK=0
-export BOX64_DYNAREC_STRONGMEM=3
-export BOX64_DYNAREC_SAFEFLAGS=2
-export BOX64_SSE42=0
+export CPU_MHZ=2000
 export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
+exec FEXInterpreter /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
   fi
   chmod +x "${STEAMAPPDIR}/jre64/bin/java"
@@ -210,8 +195,13 @@ if [ -f "${STEAMAPPDIR}/.download_complete" ] && \
   fi
   cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
-unset LD_PRELOAD
+export CPU_MHZ=2000
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
+
+# Auto-fix UseZGC to UseG1GC for FEX-Emu stability
+if [ -f "${JSON_FILE}" ]; then
+  sed -i 's/-XX:+UseZGC/-XX:+UseG1GC/g' "${JSON_FILE}"
+fi
 
 GC_CHOICE="${JVM_GC:-UseSerialGC}"
 if [ "${JVM_INTERPRETED,,}" = "true" ]; then
@@ -219,8 +209,8 @@ if [ "${JVM_INTERPRETED,,}" = "true" ]; then
 elif [ -n "${JVM_TIERED_STOP_AT_LEVEL}" ]; then
   JIT_ARGS=("-XX:TieredStopAtLevel=${JVM_TIERED_STOP_AT_LEVEL}")
 else
-  # Use JVM default (C1 + C2) but disable SuperWord (vectorization) and exclude Lua VM to prevent Box64 corruption
-  JIT_ARGS=("-XX:-UseSuperWord" "-XX:CompileCommand=exclude,se/krka/kahlua/*")
+  # Use JVM default: full tiered compilation (C1 + C2)
+  JIT_ARGS=()
 fi
 
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
@@ -248,11 +238,7 @@ for arg in "$@"; do
   fi
 done
 
-export BOX64_DYNAREC_STRONGMEM=1
-export BOX64_DYNAREC_SAFEFLAGS=1
-export BOX64_DYNAREC_BIGBLOCK=1
-export BOX64_DYNAREC_FORWARD=1
-exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
+exec FEXInterpreter /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
   chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
   chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
@@ -272,11 +258,19 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download
     RETRY_COUNT=$((RETRY_COUNT + 1))
     echo "SteamCMD download attempt $RETRY_COUNT of $MAX_RETRIES..."
     
+    cat << EOF > "${STEAMCMDDIR}/runscript.txt"
+@sSteamCmdForcePlatformType linux
+force_install_dir ${STEAMAPPDIR}
+login anonymous
+EOF
     if [ -z "${STEAMAPPBRANCH}" ] || [ "${STEAMAPPBRANCH}" = "public" ]; then
-      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export STEAM_PLATFORM=linux64 && export BOX64_DYNAREC=1 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
+      echo "app_update ${STEAMAPPID} validate" >> "${STEAMCMDDIR}/runscript.txt"
     else
-      su steam -c "export DEBUGGER=/usr/local/bin/box64 && export STEAM_PLATFORM=linux64 && export BOX64_DYNAREC=1 && ${STEAMCMDDIR}/steamcmd.sh +@sSteamCmdForcePlatformType linux +force_install_dir ${STEAMAPPDIR} +login anonymous +app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate +quit" 2>&1 | tee "$STEAMCMD_OUT"
+      echo "app_update ${STEAMAPPID} -beta ${STEAMAPPBRANCH} validate" >> "${STEAMCMDDIR}/runscript.txt"
     fi
+    echo "quit" >> "${STEAMCMDDIR}/runscript.txt"
+    
+    su steam -c "export CPU_MHZ=2000 && FEXBash ${STEAMCMDDIR}/steamcmd.sh < ${STEAMCMDDIR}/runscript.txt" 2>&1 | tee "$STEAMCMD_OUT"
     
     # Check if this attempt was successful
     if [ ${PIPESTATUS[0]} -eq 0 ] && \
@@ -320,17 +314,12 @@ if [ ! -f "${STEAMAPPDIR}/start-server.sh" ] || [ ! -f "${STEAMAPPDIR}/.download
 exec /usr/bin/java "$@"
 EOF
     else
-      echo "Writing/updating Java box64 wrapper after installation to use bundled JRE..."
+      echo "Writing/updating Java FEX-Emu wrapper after installation to use bundled JRE..."
       cat << 'EOF' > "${STEAMAPPDIR}/jre64/bin/java"
 #!/bin/bash
-unset LD_PRELOAD
-export BOX64_JVM=0
-export BOX64_DYNAREC_BIGBLOCK=0
-export BOX64_DYNAREC_STRONGMEM=3
-export BOX64_DYNAREC_SAFEFLAGS=2
-export BOX64_SSE42=0
+export CPU_MHZ=2000
 export LD_LIBRARY_PATH="/home/steam/pz-dedicated:/home/steam/pz-dedicated/linux64:/home/steam/pz-dedicated/natives:/home/steam/pz-dedicated/jre64/lib:/home/steam/pz-dedicated/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-exec /usr/local/bin/box64 /home/steam/pz-dedicated/jre64/bin/java.real "$@"
+exec FEXInterpreter /home/steam/pz-dedicated/jre64/bin/java.real "$@"
 EOF
     fi
     chmod +x "${STEAMAPPDIR}/jre64/bin/java"
@@ -343,11 +332,16 @@ EOF
       echo "Backing up raw ProjectZomboid64 binary after installation..."
       mv "${STEAMAPPDIR}/ProjectZomboid64" "${STEAMAPPDIR}/ProjectZomboid64.real"
     fi
-    echo "Writing/updating ProjectZomboid64 box64 wrapper after installation..."
+    echo "Writing/updating ProjectZomboid64 FEX-Emu wrapper after installation..."
     cat << 'EOF' > "${STEAMAPPDIR}/ProjectZomboid64"
 #!/bin/bash
-unset LD_PRELOAD
+export CPU_MHZ=2000
 JSON_FILE="/home/steam/pz-dedicated/ProjectZomboid64.json"
+
+# Auto-fix UseZGC to UseG1GC for FEX-Emu stability
+if [ -f "${JSON_FILE}" ]; then
+  sed -i 's/-XX:+UseZGC/-XX:+UseG1GC/g' "${JSON_FILE}"
+fi
 
 GC_CHOICE="${JVM_GC:-UseSerialGC}"
 if [ "${JVM_INTERPRETED,,}" = "true" ]; then
@@ -383,7 +377,7 @@ for arg in "$@"; do
   fi
 done
 
-exec /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
+exec FEXInterpreter /home/steam/pz-dedicated/jre64/bin/java "${VM_ARGS[@]}" -XX:-UseCompressedOops -XX:-UseCompressedClassPointers "${JIT_ARGS[@]}" "${JVM_ARGS[@]}" -cp "${CLASSPATH}" "${MAINCLASS}" "${APP_ARGS[@]}"
 EOF
     chmod +x "${STEAMAPPDIR}/ProjectZomboid64"
     chown steam:steam "${STEAMAPPDIR}/ProjectZomboid64"
