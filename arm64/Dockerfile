@@ -49,7 +49,9 @@ RUN dpkg --add-architecture armhf && \
     libstdc++6:amd64 \
     libgcc-s1:amd64 \
     temurin-25-jdk \
-    jq && \
+    jq \
+    eatmydata \
+    libeatmydata1:amd64 && \
     rm -rf /var/lib/apt/lists/*
 
 # Generate locales

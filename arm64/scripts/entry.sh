@@ -397,11 +397,29 @@ fi
 # Keep the FIFO open for writing on FD 3 to prevent EOF when writers disconnect
 exec 3<> "$FIFO_PATH"
 
-# Inject Box64 compatibility flags and UseG1GC into ProjectZomboid64.json
+# Inject Box64 compatibility flags and configured JVM options into ProjectZomboid64.json
 JSON_FILE="${STEAMAPPDIR}/ProjectZomboid64.json"
 if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   echo "Injecting Box64 compatibility arguments into ProjectZomboid64.json..."
-  jq '.vmArgs = (.vmArgs | map(if . == "-XX:+UseZGC" then "-XX:+UseG1GC" else . end) + ["-Dsun.reflect.noInflation=true", "-Djdk.reflect.useDirectMethodHandle=false", "-XX:CompileCommand=exclude,java/lang/Class,reflectionData", "-XX:CompileCommand=exclude,se/krka/kahlua/*,*", "-XX:-UseSuperWord", "-XX:TieredStopAtLevel=1"] | unique)' "${JSON_FILE}" > "${JSON_FILE}.tmp"
+  
+  # Determine GC method (default: UseG1GC)
+  GC_METHOD="${JVM_GC:-UseG1GC}"
+  
+  # Base Box64 JVM compatibility args
+  VM_ARGS="\"-Dsun.reflect.noInflation=true\", \"-Djdk.reflect.useDirectMethodHandle=false\", \"-XX:CompileCommand=exclude,java/lang/Class,reflectionData\", \"-XX:CompileCommand=exclude,se/krka/kahlua/*,*\", \"-XX:-UseSuperWord\""
+  
+  # Add Tiered Compilation Stop Level if specified
+  if [ -n "${JVM_TIERED_STOP_AT_LEVEL}" ]; then
+    VM_ARGS="${VM_ARGS}, \"-XX:TieredStopAtLevel=${JVM_TIERED_STOP_AT_LEVEL}\""
+  fi
+  
+  # Add Interpreted mode if specified
+  if [ "${JVM_INTERPRETED,,}" = "true" ]; then
+    VM_ARGS="${VM_ARGS}, \"-Xint\""
+  fi
+  
+  # Perform replacement in JSON
+  jq --arg gc "-XX:+${GC_METHOD}" ".vmArgs = (.vmArgs | map(if . == \"-XX:+UseZGC\" then \$gc else . end) + [${VM_ARGS}] | unique)" "${JSON_FILE}" > "${JSON_FILE}.tmp"
   mv "${JSON_FILE}.tmp" "${JSON_FILE}"
   chown steam:steam "${JSON_FILE}"
 fi
@@ -430,5 +448,29 @@ if [ -f "${STEAMAPPDIR}/start-server.sh" ]; then
   sed -i 's|\./ProjectZomboid64|/usr/local/bin/box64 ./ProjectZomboid64|g' "${STEAMAPPDIR}/start-server.sh"
 fi
 
+# Configure Box64 Dynarec Math optimizations
+BOX64_FAST_MATH="${BOX64_FAST_MATH:-true}"
+if [ "${BOX64_FAST_MATH,,}" = "true" ]; then
+  FAST_NAN=1
+  FAST_ROUND=1
+else
+  FAST_NAN=0
+  FAST_ROUND=0
+fi
+
+STRONG_MEM="${BOX64_STRONG_MEM:-1}"
+
+# Check for eatmydata to bypass disk syncs on slow drives
+USE_EATMYDATA="${USE_EATMYDATA:-false}"
+LAUNCH_CMD="./start-server.sh ${ARGS}"
+if [ "${USE_EATMYDATA,,}" = "true" ]; then
+  if command -v eatmydata >/dev/null 2>&1; then
+    echo "Running server with eatmydata to bypass disk write syncs (highly optimized for HDDs)..."
+    LAUNCH_CMD="eatmydata ./start-server.sh ${ARGS}"
+  else
+    echo "WARNING: eatmydata requested but the 'eatmydata' command is not available."
+  fi
+fi
+
 # Run the server with stdin redirected from the FIFO
-su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && export BOX64_DYNAREC_STRONGMEM=1 && export BOX64_DYNAREC_SAFEFLAGS=2 && export BOX64_DYNAREC_FASTNAN=0 && export BOX64_DYNAREC_FASTROUND=0 && cd ${STEAMAPPDIR} && ./start-server.sh ${ARGS} < $FIFO_PATH"
+su - steam -c "export LANG=${LANG} && export LD_LIBRARY_PATH=\"${STEAMAPPDIR}/jre64/lib:${LD_LIBRARY_PATH}\" && export BOX64_DYNAREC_STRONGMEM=${STRONG_MEM} && export BOX64_DYNAREC_SAFEFLAGS=2 && export BOX64_DYNAREC_FASTNAN=${FAST_NAN} && export BOX64_DYNAREC_FASTROUND=${FAST_ROUND} && cd ${STEAMAPPDIR} && ${LAUNCH_CMD} < $FIFO_PATH"
