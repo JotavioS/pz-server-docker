@@ -67,8 +67,6 @@ RUN sed -i 's/^# *\(es_ES.UTF-8\)/\1/' /etc/locale.gen && \
 
 # Copy the finished FEX binaries and trunks from the builder
 COPY --from=builder /usr/bin/FEX* /usr/bin/
-COPY --from=builder /usr/lib/fex-emu /usr/lib/fex-emu
-COPY --from=builder /usr/share/fex-emu /usr/share/fex-emu
 
 ENV STEAMAPPID=380870
 ENV STEAMAPP=pz
