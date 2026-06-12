@@ -458,7 +458,7 @@ else
   FAST_ROUND=0
 fi
 
-STRONG_MEM="${BOX64_STRONG_MEM:-1}"
+STRONG_MEM="${BOX64_STRONG_MEM:-3}"
 
 # Check for eatmydata to bypass disk syncs on slow drives
 USE_EATMYDATA="${USE_EATMYDATA:-false}"
