@@ -406,8 +406,15 @@ if [ -f "${JSON_FILE}" ] && command -v jq >/dev/null 2>&1; then
   chown steam:steam "${JSON_FILE}"
 fi
 
-# Patch start-server.sh to explicitly use box64
+# Patch start-server.sh to explicitly use box64 and prevent JVM bitness check failures
 if [ -f "${STEAMAPPDIR}/start-server.sh" ]; then
+  # Remove previous box64 injections if any to prevent duplication
+  sed -i 's|/usr/local/bin/box64 ||g' "${STEAMAPPDIR}/start-server.sh"
+  
+  # Inject box64 into the java version check
+  sed -i 's|"${INSTDIR}/jre64/bin/java" -version|/usr/local/bin/box64 "${INSTDIR}/jre64/bin/java" -version|g' "${STEAMAPPDIR}/start-server.sh"
+  
+  # Inject box64 into the ProjectZomboid64 execution line
   sed -i 's|\./ProjectZomboid64|/usr/local/bin/box64 ./ProjectZomboid64|g' "${STEAMAPPDIR}/start-server.sh"
 fi
 
