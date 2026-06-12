@@ -118,13 +118,13 @@ is_jre_healthy() {
     if [ -f "${STEAMAPPDIR}/jre64/bin/java" ]; then
       if [ "$(head -c 2 "${STEAMAPPDIR}/jre64/bin/java")" = "#!" ]; then
         if [ -f "${STEAMAPPDIR}/jre64/bin/java.real" ]; then
-          LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" FEXInterpreter "${STEAMAPPDIR}/jre64/bin/java.real" -version > /dev/null 2>&1
+          su steam -c "LD_LIBRARY_PATH=\"${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}\" FEXInterpreter \"${STEAMAPPDIR}/jre64/bin/java.real\" -version > /dev/null 2>&1"
           return $?
         else
           return 1
         fi
       else
-        LD_LIBRARY_PATH="${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}" FEXInterpreter "${STEAMAPPDIR}/jre64/bin/java" -version > /dev/null 2>&1
+        su steam -c "LD_LIBRARY_PATH=\"${STEAMAPPDIR}:${STEAMAPPDIR}/linux64:${STEAMAPPDIR}/natives:${STEAMAPPDIR}/jre64/lib:${STEAMAPPDIR}/jre64/lib/server:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}\" FEXInterpreter \"${STEAMAPPDIR}/jre64/bin/java\" -version > /dev/null 2>&1"
         return $?
       fi
     else
